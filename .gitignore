@@ -14,3 +14,6 @@
 .cxx
 local.properties
 app/build/
+dist/
+dist_*/
+imagenes juego/screen_*.png

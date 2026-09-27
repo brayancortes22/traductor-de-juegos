@@ -20,7 +20,10 @@ class FloatingBubbleManager(
     private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val onSelectMode: (TranslationMode) -> Unit,
-    private val onToggleRealTime: () -> Boolean
+    private val onToggleRealTime: () -> Boolean,
+    private val onAskAssistant: () -> Unit,
+    private val onToggleVoice: () -> Boolean,
+    private val onToggleFilter: () -> Boolean
 ) {
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -159,6 +162,10 @@ class FloatingBubbleManager(
             hideMenu()
             onSelectMode(TranslationMode.LIFEAFTER_CHAT)
         }
+        view.findViewById<View>(R.id.btn_mode_copilot).setOnClickListener {
+            hideMenu()
+            onAskAssistant()
+        }
         view.findViewById<View>(R.id.btn_mode_realtime).setOnClickListener {
             val isActive = onToggleRealTime()
             val tvLabel = view.findViewById<TextView>(R.id.tv_realtime_label)
@@ -166,6 +173,30 @@ class FloatingBubbleManager(
             if (isActive) {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
+            } else {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
+            }
+        }
+        view.findViewById<View>(R.id.btn_toggle_voice).setOnClickListener {
+            val isVoiceActive = onToggleVoice()
+            val tvLabel = view.findViewById<TextView>(R.id.tv_voice_label)
+            val ivIcon = view.findViewById<ImageView>(R.id.iv_voice_indicator)
+            if (isVoiceActive) {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
+            } else {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
+            }
+        }
+        view.findViewById<View>(R.id.btn_toggle_filter).setOnClickListener {
+            val isFilterActive = onToggleFilter()
+            val tvLabel = view.findViewById<TextView>(R.id.tv_filter_label)
+            val ivIcon = view.findViewById<ImageView>(R.id.iv_filter_indicator)
+            if (isFilterActive) {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_cyan))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_cyan))
             } else {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))

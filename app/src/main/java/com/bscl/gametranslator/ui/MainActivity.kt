@@ -105,11 +105,8 @@ class MainActivity : AppCompatActivity() {
     private fun checkOfflineModel() {
         val config = preferencesManager.loadConfig()
         lifecycleScope.launch {
-            val ready = translatorEngine.ensureModelDownloaded(
-                config.sourceLanguage,
-                config.targetLanguage
-            )
-            if (ready) {
+            val isDownloaded = translatorEngine.isModelDownloaded(config.targetLanguage)
+            if (isDownloaded) {
                 binding.tvModelStatus.setText(R.string.status_model_ready)
                 binding.btnDownloadModel.setText(R.string.btn_verify_model)
             } else {
@@ -121,17 +118,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun downloadOfflineModel() {
         val config = preferencesManager.loadConfig()
-        val loadingDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.download_dialog_title)
-            .setMessage(R.string.download_dialog_desc)
-            .setCancelable(false)
-            .create()
-        loadingDialog.show()
-
-        binding.pbDownloadModel.visibility = View.VISIBLE
-        binding.tvModelStatus.setText(R.string.status_model_downloading)
-
         lifecycleScope.launch {
+            val alreadyDownloaded = translatorEngine.isModelDownloaded(config.targetLanguage)
+            if (alreadyDownloaded) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(R.string.download_success_title)
+                    .setMessage(R.string.model_already_downloaded)
+                    .setPositiveButton("Aceptar", null)
+                    .show()
+                binding.tvModelStatus.setText(R.string.status_model_ready)
+                binding.btnDownloadModel.setText(R.string.btn_verify_model)
+                return@launch
+            }
+
+            val dialogView = layoutInflater.inflate(R.layout.dialog_downloading_model, null)
+            val loadingDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                .setView(dialogView)
+                .setCancelable(false)
+                .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
+                .create()
+            loadingDialog.show()
+
+            binding.pbDownloadModel.visibility = View.VISIBLE
+            binding.tvModelStatus.setText(R.string.status_model_downloading)
+
             val success = translatorEngine.ensureModelDownloaded(
                 config.sourceLanguage,
                 config.targetLanguage,

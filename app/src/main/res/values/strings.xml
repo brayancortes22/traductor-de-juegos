@@ -39,4 +39,14 @@
     <string name="mode_realtime_toggle">Auto-Scan en Tiempo Real</string>
     <string name="realtime_active_toast">Modo tiempo real activado para:</string>
     <string name="realtime_stopped_toast">Modo tiempo real desactivado</string>
+
+    <!-- Copiloto IA y Voz -->
+    <string name="menu_copilot">🧠 Copiloto IA (¿Qué hacer?)</string>
+    <string name="menu_voice_toggle">🔊 Voz del Copiloto</string>
+    <string name="menu_filter_toggle">🛡️ Filtrar HUD / Balas</string>
+    <string name="voice_enabled_toast">🔊 Voz del copiloto activada: te hablará mientras juegas</string>
+    <string name="voice_disabled_toast">🔇 Voz del copiloto silenciada</string>
+    <string name="filter_enabled_toast">🛡️ Filtro de HUD activado (vida, balas y ping ignorados)</string>
+    <string name="filter_disabled_toast">Filtro de HUD desactivado</string>
+    <string name="model_already_downloaded">✅ El modelo de traducción ya está 100% instalado localmente.</string>
 </resources>

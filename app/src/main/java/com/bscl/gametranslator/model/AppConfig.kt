@@ -4,6 +4,7 @@ import android.graphics.Rect
 import com.google.mlkit.nl.translate.TranslateLanguage
 
 enum class SupportedLanguage(val code: String, val displayName: String, val mlKitCode: String) {
+    AUTO("auto", "Detección Automática", "und"),
     ENGLISH("en", "Inglés", TranslateLanguage.ENGLISH),
     SPANISH("es", "Español", TranslateLanguage.SPANISH),
     CHINESE("zh", "Chino", TranslateLanguage.CHINESE),
@@ -58,5 +59,9 @@ data class AppConfig(
     val bubbleOpacity: Float = 0.90f,
     val autoCopyToClipboard: Boolean = false,
     val activeMode: TranslationMode = TranslationMode.FULL_SCREEN,
-    val isRealTimeAutoScan: Boolean = false
+    val isRealTimeAutoScan: Boolean = false,
+    val filterIrrelevantElements: Boolean = true,
+    val enableAiMaxGlossary: Boolean = true,
+    val enableVoiceAssistant: Boolean = true,
+    val geminiApiKey: String = ""
 )

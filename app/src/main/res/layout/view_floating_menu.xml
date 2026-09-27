@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/menu_root"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -156,15 +157,9 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/border_cyan"
-        android:layout_marginVertical="4dp" />
-
-    <!-- Option 6: Real-time Auto-Scan Toggle -->
+    <!-- Option 6: AI Game Copilot / Assistant -->
     <LinearLayout
-        android:id="@+id/btn_mode_realtime"
+        android:id="@+id/btn_mode_copilot"
         android:layout_width="match_parent"
         android:layout_height="38dp"
         android:gravity="center_vertical"
@@ -173,9 +168,41 @@
         android:background="?attr/selectableItemBackground">
 
         <ImageView
-            android:id="@+id/iv_realtime_indicator"
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:src="@drawable/ic_translate"
+            app:tint="#00E5FF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/menu_copilot"
+            android:textColor="#00E5FF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_cyan"
+        android:layout_marginVertical="4dp" />
+
+    <!-- Option 7: Real-time Auto-Scan Toggle -->
+    <LinearLayout
+        android:id="@+id/btn_mode_realtime"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:id="@+id/iv_realtime_indicator"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:src="@drawable/ic_realtime" />
 
         <TextView
@@ -185,8 +212,62 @@
             android:layout_marginStart="8dp"
             android:text="@string/mode_realtime_toggle"
             android:textColor="@color/accent_green"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Option 8: Voice Narrator Toggle -->
+    <LinearLayout
+        android:id="@+id/btn_toggle_voice"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:id="@+id/iv_voice_indicator"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_chat"
+            app:tint="#4ADE80" />
+
+        <TextView
+            android:id="@+id/tv_voice_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/menu_voice_toggle"
+            android:textColor="#4ADE80"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Option 9: HUD Filter Toggle -->
+    <LinearLayout
+        android:id="@+id/btn_toggle_filter"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:id="@+id/iv_filter_indicator"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_crop"
+            app:tint="#38BDF8" />
+
+        <TextView
+            android:id="@+id/tv_filter_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/menu_filter_toggle"
+            android:textColor="#38BDF8"
+            android:textSize="12sp" />
     </LinearLayout>
 
 </LinearLayout>

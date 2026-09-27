@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.graphics.Rect
@@ -16,27 +17,49 @@ import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.bscl.gametranslator.R
+import com.bscl.gametranslator.assistant.AiGameAssistantEngine
 import com.bscl.gametranslator.data.PreferencesManager
+import com.bscl.gametranslator.filter.TextFilterEngine
+import com.bscl.gametranslator.glossary.GameGlossary
 import com.bscl.gametranslator.ml.OcrEngine
 import com.bscl.gametranslator.ml.TranslatorEngine
 import com.bscl.gametranslator.model.TranslationMode
 import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
+import com.bscl.gametranslator.ui.SnipOverlayView
 import com.bscl.gametranslator.util.ImageHashUtil
-import kotlinx.coroutines.*
+import com.bscl.gametranslator.voice.VoiceNarratorEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ScreenCaptureService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var ocrEngine: OcrEngine
     private lateinit var translatorEngine: TranslatorEngine
     private lateinit var bubbleManager: FloatingBubbleManager
     private lateinit var resultDialogManager: ResultDialogManager
+    private lateinit var assistantDialogManager: AssistantDialogManager
+    private lateinit var voiceNarrator: VoiceNarratorEngine
+    private lateinit var textFilter: TextFilterEngine
+    private lateinit var gameGlossary: GameGlossary
+    private lateinit var assistantEngine: AiGameAssistantEngine
 
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -57,6 +80,14 @@ class ScreenCaptureService : Service() {
         ocrEngine = OcrEngine()
         translatorEngine = TranslatorEngine()
         resultDialogManager = ResultDialogManager(this)
+        voiceNarrator = VoiceNarratorEngine(this)
+        textFilter = TextFilterEngine()
+        gameGlossary = GameGlossary()
+        assistantEngine = AiGameAssistantEngine()
+
+        assistantDialogManager = AssistantDialogManager(this) { spokenSummary ->
+            voiceNarrator.speak(spokenSummary, isPriority = true)
+        }
 
         initDisplayMetrics()
         setupNotificationChannel()
@@ -65,7 +96,10 @@ class ScreenCaptureService : Service() {
             context = this,
             preferencesManager = preferencesManager,
             onSelectMode = { mode -> executeMode(mode) },
-            onToggleRealTime = { toggleRealTimeMode() }
+            onToggleRealTime = { toggleRealTimeMode() },
+            onAskAssistant = { triggerAssistantAnalysis() },
+            onToggleVoice = { toggleVoiceMode() },
+            onToggleFilter = { toggleFilterMode() }
         )
         bubbleManager.show()
     }
@@ -75,31 +109,32 @@ class ScreenCaptureService : Service() {
         val resultData = intent?.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
 
         if (resultCode != 0 && resultData != null && mediaProjection == null) {
+            // Requisito estricto en Android 14 (API 34): Iniciar Foreground Service antes de getMediaProjection
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    buildNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            }
+
+            // Obtener MediaProjection con el Foreground Service ya activo
             val projectionManager =
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             val projection = projectionManager.getMediaProjection(resultCode, resultData)
             mediaProjection = projection
 
-            // Requisito estricto en Android 14 (API 34): registrar Callback antes de createVirtualDisplay
+            // Registrar callback obligatorio antes de createVirtualDisplay
             projection.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
                     virtualDisplay?.release()
                     virtualDisplay = null
                     mediaProjection = null
                 }
-            }, android.os.Handler(android.os.Looper.getMainLooper()))
-
-            // Requisito estricto en Android 14: especificar tipo mediaProjection en startForeground
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                androidx.core.app.ServiceCompat.startForeground(
-                    this,
-                    NOTIFICATION_ID,
-                    buildNotification(),
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, buildNotification())
-            }
+            }, Handler(Looper.getMainLooper()))
 
             setupVirtualDisplay()
         }
@@ -126,7 +161,7 @@ class ScreenCaptureService : Service() {
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             imageReader?.surface,
             null,
-            android.os.Handler(android.os.Looper.getMainLooper())
+            Handler(Looper.getMainLooper())
         )
     }
 
@@ -154,6 +189,56 @@ class ScreenCaptureService : Service() {
             realTimeJob?.cancel()
         }
         return isRealTimeActive
+    }
+
+    private fun toggleVoiceMode(): Boolean {
+        val config = preferencesManager.loadConfig()
+        val newState = !config.enableVoiceAssistant
+        preferencesManager.saveConfig(config.copy(enableVoiceAssistant = newState))
+        if (newState) {
+            Toast.makeText(this, R.string.voice_enabled_toast, Toast.LENGTH_SHORT).show()
+            voiceNarrator.speak("Copiloto de voz activado. Te asistiré durante la partida.", isPriority = true)
+        } else {
+            Toast.makeText(this, R.string.voice_disabled_toast, Toast.LENGTH_SHORT).show()
+            voiceNarrator.stop()
+        }
+        return newState
+    }
+
+    private fun toggleFilterMode(): Boolean {
+        val config = preferencesManager.loadConfig()
+        val newState = !config.filterIrrelevantElements
+        preferencesManager.saveConfig(config.copy(filterIrrelevantElements = newState))
+        val msg = if (newState) R.string.filter_enabled_toast else R.string.filter_disabled_toast
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        return newState
+    }
+
+    private fun triggerAssistantAnalysis() {
+        serviceScope.launch(Dispatchers.Default) {
+            val rect = currentMode.getBoundingRect(screenWidth, screenHeight)
+            val bitmap = captureBitmapRegion(rect) ?: return@launch
+            val rawBlocks = ocrEngine.recognizeText(bitmap)
+            bitmap.recycle()
+
+            val cleanText = textFilter.extractCleanFullText(rawBlocks)
+            if (cleanText.isBlank()) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ScreenCaptureService, "No se detectó texto o misiones en pantalla", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            val config = preferencesManager.loadConfig()
+            val advice = assistantEngine.analyzeGameContext(cleanText, config.geminiApiKey)
+
+            withContext(Dispatchers.Main) {
+                assistantDialogManager.showAdvice(advice)
+                if (config.enableVoiceAssistant) {
+                    voiceNarrator.speak(advice.spokenSummary, isPriority = true)
+                }
+            }
+        }
     }
 
     private fun startRealTimeAutoScan() {
@@ -232,9 +317,16 @@ class ScreenCaptureService : Service() {
 
     private suspend fun processBitmapAndTranslate(bitmap: Bitmap, isAuto: Boolean) {
         val config = preferencesManager.loadConfig()
-        val blocks = ocrEngine.recognizeText(bitmap)
-        val fullText = blocks.joinToString(" ") { it.originalText }
+        val rawBlocks = ocrEngine.recognizeText(bitmap)
         bitmap.recycle()
+
+        val blocks = if (config.filterIrrelevantElements) {
+            textFilter.filterBlocks(rawBlocks)
+        } else {
+            rawBlocks
+        }
+
+        val fullText = blocks.joinToString("\n") { it.originalText }
 
         if (fullText.isEmpty()) {
             if (!isAuto) {
@@ -246,9 +338,21 @@ class ScreenCaptureService : Service() {
         }
 
         try {
-            val translated = translatorEngine.translateText(fullText, config.sourceLanguage, config.targetLanguage)
+            var translated = translatorEngine.translateText(fullText, config.sourceLanguage, config.targetLanguage)
+
+            if (config.enableAiMaxGlossary) {
+                translated = gameGlossary.applyGlossary(translated)
+            }
+
             withContext(Dispatchers.Main) {
                 resultDialogManager.showResult(TranslationResult(fullText, translated, blocks), config.autoCopyToClipboard)
+
+                if (config.enableVoiceAssistant && (currentMode == TranslationMode.LIFEAFTER_QUESTS || isAuto)) {
+                    val firstSentence = translated.lines().firstOrNull { it.isNotBlank() } ?: ""
+                    if (firstSentence.length in 5..120) {
+                        voiceNarrator.speak(firstSentence)
+                    }
+                }
             }
         } catch (e: Exception) {
             if (!isAuto) {
@@ -280,8 +384,10 @@ class ScreenCaptureService : Service() {
         super.onDestroy()
         isRealTimeActive = false
         realTimeJob?.cancel()
+        voiceNarrator.shutdown()
         bubbleManager.hide()
         resultDialogManager.dismiss()
+        assistantDialogManager.dismiss()
         virtualDisplay?.release()
         imageReader?.close()
         mediaProjection?.stop()

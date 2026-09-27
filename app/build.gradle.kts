@@ -60,9 +60,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
 
-    // Google ML Kit On-Device (Text Recognition & Offline Translation)
+    // Google ML Kit On-Device (Text Recognition & Offline Translation & Language ID)
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.mlkit:translate:17.0.2")
+    implementation("com.google.mlkit:language-id:17.0.5")
+
+    // Networking for AI Game Assistant
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
