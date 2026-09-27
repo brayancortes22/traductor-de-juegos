@@ -78,6 +78,10 @@ class ScreenCaptureService : Service() {
     private var realTimeJob: Job? = null
     private var lastFrameHash = 0L
 
+    private var isDialogueActive = false
+    private var dialogueTrackingJob: Job? = null
+    private var lastDialogueHash = 0L
+
     override fun onCreate() {
         super.onCreate()
         CrashLogger.init(applicationContext)
@@ -172,14 +176,25 @@ class ScreenCaptureService : Service() {
 
     private fun executeMode(mode: TranslationMode) {
         currentMode = mode
+        if (mode != TranslationMode.LIFEAFTER_CHAT) {
+            stopDialogueTracking()
+        }
+
         when (mode) {
             TranslationMode.FULL_SCREEN -> captureAndTranslate(null)
             TranslationMode.PARTIAL_CROP -> startSnippingMode()
             TranslationMode.LIFEAFTER_QUESTS,
-            TranslationMode.LIFEAFTER_SHOP,
-            TranslationMode.LIFEAFTER_CHAT -> {
+            TranslationMode.LIFEAFTER_SHOP -> {
                 val rect = mode.getBoundingRect(screenWidth, screenHeight)
                 captureAndTranslate(rect)
+            }
+            TranslationMode.LIFEAFTER_CHAT -> {
+                if (isDialogueActive) {
+                    stopDialogueTracking()
+                    Toast.makeText(this, "Modo Diálogo desactivado", Toast.LENGTH_SHORT).show()
+                } else {
+                    startDialogueTrackingLoop()
+                }
             }
         }
     }
@@ -338,7 +353,8 @@ class ScreenCaptureService : Service() {
     private suspend fun processBitmapAndTranslate(
         bitmap: Bitmap,
         isAuto: Boolean,
-        offsetRect: Rect? = null
+        offsetRect: Rect? = null,
+        isClickThrough: Boolean = false
     ) {
         val config = preferencesManager.loadConfig()
         val rawBlocks = ocrEngine.recognizeText(bitmap)
@@ -387,8 +403,13 @@ class ScreenCaptureService : Service() {
             val fullTranslated = translatedBlocks.joinToString("\n") { it.translatedText }
 
             withContext(Dispatchers.Main) {
-                // Desplegar superposición directa sobre el texto en inglés
-                showInPlaceOverlay(translatedBlocks)
+                // Desplegar o actualizar superposición directa sobre el texto en inglés
+                val currentOverlay = currentInPlaceOverlay
+                if (isClickThrough && currentOverlay != null && currentOverlay.isAttachedToWindow) {
+                    currentOverlay.updateBlocks(translatedBlocks)
+                } else {
+                    showInPlaceOverlay(translatedBlocks, isClickThrough)
+                }
                 resultDialogManager.dismiss()
 
                 if (config.autoCopyToClipboard && fullTranslated.isNotBlank()) {
@@ -412,10 +433,54 @@ class ScreenCaptureService : Service() {
         }
     }
 
-    private fun showInPlaceOverlay(blocks: List<DetectedTextBlock>) {
-        currentInPlaceOverlay?.detach()
-        val overlay = InPlaceTranslationOverlayView(this, blocks) {
+    private fun startDialogueTrackingLoop() {
+        isDialogueActive = true
+        dialogueTrackingJob?.cancel()
+        val rect = TranslationMode.LIFEAFTER_CHAT.getBoundingRect(screenWidth, screenHeight)
+        Toast.makeText(this, "Modo Diálogo Pasante activo. Toca el juego para avanzar.", Toast.LENGTH_SHORT).show()
+
+        dialogueTrackingJob = serviceScope.launch(Dispatchers.Default) {
+            // 1. Escaneo inicial inmediato
+            val initialBitmap = captureBitmapRegion(rect)
+            if (initialBitmap != null) {
+                lastDialogueHash = ImageHashUtil.computeDHash(initialBitmap)
+                processBitmapAndTranslate(initialBitmap, isAuto = true, offsetRect = rect, isClickThrough = true)
+            }
+
+            // 2. Bucle de seguimiento de alta frecuencia mientras el jugador pasa diálogos
+            while (isActive && isDialogueActive) {
+                delay(750)
+                val frameBitmap = captureBitmapRegion(rect) ?: continue
+                val currentHash = ImageHashUtil.computeDHash(frameBitmap)
+                val diff = ImageHashUtil.hammingDistance(lastDialogueHash, currentHash)
+
+                if (diff > 3) {
+                    lastDialogueHash = currentHash
+                    processBitmapAndTranslate(frameBitmap, isAuto = true, offsetRect = rect, isClickThrough = true)
+                } else {
+                    frameBitmap.recycle()
+                }
+            }
+        }
+    }
+
+    private fun stopDialogueTracking() {
+        if (isDialogueActive) {
+            isDialogueActive = false
+            dialogueTrackingJob?.cancel()
+            dialogueTrackingJob = null
+            currentInPlaceOverlay?.detach()
             currentInPlaceOverlay = null
+        }
+    }
+
+    private fun showInPlaceOverlay(blocks: List<DetectedTextBlock>, isClickThrough: Boolean = false) {
+        currentInPlaceOverlay?.detach()
+        val overlay = InPlaceTranslationOverlayView(this, blocks, isClickThrough) {
+            currentInPlaceOverlay = null
+            if (isDialogueActive) {
+                stopDialogueTracking()
+            }
         }
         currentInPlaceOverlay = overlay
         overlay.attach()
@@ -440,6 +505,7 @@ class ScreenCaptureService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopDialogueTracking()
         isRealTimeActive = false
         realTimeJob?.cancel()
         voiceNarrator.shutdown()

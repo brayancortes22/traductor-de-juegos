@@ -44,9 +44,9 @@ enum class TranslationMode(val displayName: String) {
                 (screenHeight * 0.92).toInt()
             )
             LIFEAFTER_CHAT -> Rect(
-                (screenWidth * 0.25).toInt(),
-                (screenHeight * 0.75).toInt(),
-                (screenWidth * 0.75).toInt(),
+                (screenWidth * 0.12).toInt(),
+                (screenHeight * 0.58).toInt(),
+                (screenWidth * 0.88).toInt(),
                 (screenHeight * 0.98).toInt()
             )
         }

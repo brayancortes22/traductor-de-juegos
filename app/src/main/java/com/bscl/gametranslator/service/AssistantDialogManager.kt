@@ -12,6 +12,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.view.ContextThemeWrapper
 import com.bscl.gametranslator.R
+import com.bscl.gametranslator.assistant.AdviceType
 import com.bscl.gametranslator.assistant.GameAdvice
 
 class AssistantDialogManager(
@@ -32,19 +33,56 @@ class AssistantDialogManager(
         dialogView = view
 
         val tvTitle = view.findViewById<TextView>(R.id.tv_advice_title)
-        val tvObjective = view.findViewById<TextView>(R.id.tv_advice_objective)
-        val tvWhere = view.findViewById<TextView>(R.id.tv_advice_where)
-        val tvSteps = view.findViewById<TextView>(R.id.tv_advice_steps)
-        val tvProTip = view.findViewById<TextView>(R.id.tv_advice_protip)
+        val tvLabelObjective = view.findViewById<TextView>(R.id.tv_label_objective)
+        val tvAdviceObjective = view.findViewById<TextView>(R.id.tv_advice_objective)
+
+        val tvLabelWhere = view.findViewById<TextView>(R.id.tv_label_where)
+        val tvAdviceWhere = view.findViewById<TextView>(R.id.tv_advice_where)
+
+        val tvLabelSearchBring = view.findViewById<TextView>(R.id.tv_label_search_bring)
+        val tvAdviceSearchBring = view.findViewById<TextView>(R.id.tv_advice_search_bring)
+
+        val tvLabelSteps = view.findViewById<TextView>(R.id.tv_label_steps)
+        val tvAdviceSteps = view.findViewById<TextView>(R.id.tv_advice_steps)
+
+        val tvLabelProTip = view.findViewById<TextView>(R.id.tv_label_protip)
+        val tvAdviceProTip = view.findViewById<TextView>(R.id.tv_advice_protip)
+
         val btnClose = view.findViewById<ImageView>(R.id.btn_assistant_close)
         val btnDismiss = view.findViewById<Button>(R.id.btn_advice_dismiss)
         val btnSpeak = view.findViewById<Button>(R.id.btn_advice_speak)
 
+        // Configurar títulos dinámicos según el tipo de contexto
+        when (advice.type) {
+            AdviceType.SKILL_TALENT -> {
+                tvLabelObjective.text = "💡 ¿Qué es y para qué sirve esta habilidad?"
+                tvLabelWhere.text = "📍 Dónde se ubica o desbloquea:"
+                tvLabelSearchBring.text = "💎 Costo y requisitos (Puntos / Dólares):"
+                tvLabelSteps.text = "🛠️ Cómo mejorarla paso a paso:"
+                tvLabelProTip.text = "⚡ ¿Vale la pena subirla? (Prioridad Pro):"
+            }
+            AdviceType.ITEM_EQUIPMENT -> {
+                tvLabelObjective.text = "📦 ¿Qué es y para qué sirve este objeto?"
+                tvLabelWhere.text = "📍 Dónde se fabrica o equipa:"
+                tvLabelSearchBring.text = "🎒 Materiales o requisitos requeridos:"
+                tvLabelSteps.text = "🛠️ Paso a paso para craftearlo o usarlo:"
+                tvLabelProTip.text = "⚡ Consejo de durabilidad y uso táctico:"
+            }
+            AdviceType.MISSION_TACTICAL, AdviceType.GENERAL_INTERFACE -> {
+                tvLabelObjective.text = "🎯 ¿Qué debo hacer?"
+                tvLabelWhere.text = "📍 ¿A dónde ir?"
+                tvLabelSearchBring.text = "🎒 ¿Qué buscar en la zona y qué llevar?"
+                tvLabelSteps.text = "🛠️ Paso a paso (1, 2, 3):"
+                tvLabelProTip.text = "⚡ Consejo Táctico / Truco de Supervivencia:"
+            }
+        }
+
         tvTitle.text = advice.title
-        tvObjective.text = advice.objective
-        tvWhere.text = advice.whereToFind
-        tvSteps.text = advice.stepByStep
-        tvProTip.text = advice.proTip
+        tvAdviceObjective.text = advice.objective
+        tvAdviceWhere.text = advice.whereToGo
+        tvAdviceSearchBring.text = advice.whatToSearchAndBring
+        tvAdviceSteps.text = advice.stepByStep
+        tvAdviceProTip.text = advice.proTip
 
         btnClose.setOnClickListener { dismiss() }
         btnDismiss.setOnClickListener { dismiss() }
@@ -57,7 +95,8 @@ class AssistantDialogManager(
 
     private fun attachToWindow(view: View) {
         val displayMetrics = context.resources.displayMetrics
-        val width = (displayMetrics.widthPixels * 0.82).toInt().coerceAtMost(900)
+        val width = (displayMetrics.widthPixels * 0.84).toInt().coerceAtMost(920)
+        val maxHeight = (displayMetrics.heightPixels * 0.90).toInt()
 
         val params = WindowManager.LayoutParams(
             width,
@@ -70,6 +109,7 @@ class AssistantDialogManager(
             gravity = Gravity.CENTER
             x = 0
             y = 0
+            height = WindowManager.LayoutParams.WRAP_CONTENT
         }
 
         windowManager.addView(view, params)

@@ -1,9 +1,18 @@
 package com.bscl.gametranslator.assistant
 
+enum class AdviceType {
+    MISSION_TACTICAL,     // Misión y objetivos de mapa
+    SKILL_TALENT,         // Habilidades (crear cosas, fuerza, recolección)
+    ITEM_EQUIPMENT,       // Ítems, armas, accesorios, fórmulas
+    GENERAL_INTERFACE     // Menús, eventos, interfaz general
+}
+
 data class GameAdvice(
+    val type: AdviceType = AdviceType.MISSION_TACTICAL,
     val title: String,
     val objective: String,
-    val whereToFind: String,
+    val whereToGo: String,
+    val whatToSearchAndBring: String,
     val stepByStep: String,
     val proTip: String,
     val spokenSummary: String
@@ -16,72 +25,84 @@ class LifeAfterKnowledgeBase {
         AdviceEntry(
             keywords = listOf("amino acid", "amino", "lv.1 amino"),
             advice = GameAdvice(
+                type = AdviceType.ITEM_EQUIPMENT,
                 title = "Solución de Aminoácidos Nivel 1",
-                objective = "Fabricar Solución de Aminoácidos Nivel 1 para curación en el difusor.",
-                whereToFind = "Madera (100) y Cáñamo (25). Se recolectan fácilmente en Bosque de Otoño (Fall Forest) o alrededor de tu Mansión.",
+                objective = "Frasco consumible para curación continua de vida y escudo en combate mediante el Difusor Táctico.",
+                whereToGo = "Fórmula Portátil (esquina inferior izquierda) > Básicos > Curación.",
+                whatToSearchAndBring = "Madera (100) y Cáñamo (25). Se recolectan talando y cosechando en Fall Forest o alrededor de tu Mansión.",
                 stepByStep = "1. Pulsa el botón 'Formula' (esquina inferior izquierda).\n2. Ve a la pestaña 'Básicos / Curación'.\n3. Selecciona 'Lv.1 Amino Acid Solution' y pulsa 'Craft'.",
-                proTip = "Equípalo en tu Difusor Táctico para curar escudo y vida en plena batalla.",
-                spokenSummary = "Para fabricar aminoácido nivel 1, abre la fórmula portátil abajo a la izquierda, entra a Básicos y dale a fabricar con madera y cáñamo."
+                proTip = "Lanza el difusor al suelo antes de que los enemigos te rompan el escudo para regenerarte mientras disparas.",
+                spokenSummary = "Solución de Aminoácidos Nivel 1. Sirve para curar escudo y vida con el difusor táctico. Se fabrica en tu fórmula portátil con cien de madera y veinticinco de cáñamo."
             )
         ),
         // Material Bench
         AdviceEntry(
             keywords = listOf("material bench", "bench", "craft bench"),
             advice = GameAdvice(
+                type = AdviceType.ITEM_EQUIPMENT,
                 title = "Banco de Materiales (Material Bench)",
-                objective = "Procesar materiales brutos y craftear tablones, ladrillos y componentes.",
-                whereToFind = "Ubicado dentro de tu propia Mansión (Manor). Acércate a la mesa de madera con sierra circular.",
-                stepByStep = "1. Acércate a la mesa hasta ver el botón 'Craft'.\n2. Toca 'Craft' para abrir el inventario de fórmulas de construcción y materiales.",
+                objective = "Mesa de trabajo esencial para procesar materiales brutos y craftear tablones, ladrillos y componentes de construcción.",
+                whereToGo = "Ubicado dentro de tu propia Mansión (Manor). Acércate a la mesa de madera con sierra circular.",
+                whatToSearchAndBring = "Materiales brutos traídos de mapas de exploración (madera, piedra, resina, mineral de hierro).",
+                stepByStep = "1. Acércate a la mesa hasta ver el botón interactivo 'Craft'.\n2. Toca 'Craft' para abrir el catálogo de fórmulas de construcción.\n3. Selecciona el componente y pulsa Fabricar.",
                 proTip = "Guarda tus materiales brutos en gabinetes dentro de tu casa para no perderlos si mueres en mapas infectados.",
-                spokenSummary = "Acércate al banco de materiales en tu mansión y pulsa Fabricar para crear componentes de construcción."
+                spokenSummary = "Banco de Materiales en tu mansión. Sirve para transformar madera y piedra en tablones y ladrillos para ampliar tu casa."
             )
         ),
         // Page Fragments / Formula Shards
         AdviceEntry(
             keywords = listOf("page fragments", "formula shard", "questionnaire"),
             advice = GameAdvice(
-                title = "Fragmentos de Fórmula / Página",
-                objective = "Obtener fragmentos para tirar en la máquina de fórmulas y desbloquear mejores armas.",
-                whereToFind = "Respondiendo la encuesta del juego, cofres dorados en mapas de exploración y recompensas diarias del Campamento.",
-                stepByStep = "1. Completa la encuesta que tienes en pantalla para recibir 20 fragmentos.\n2. Ve a la Máquina de Fórmulas en el Campamento o Mansión para fusionar fragmentos.",
-                proTip = "Ahorra tus fragmentos para las tiradas de armas Grado 2 y 3 (UZI, Thompson, 590M), no los gastes en muebles.",
-                spokenSummary = "Completa la encuesta en pantalla para recibir 20 fragmentos de fórmula gratis. Guárdalos para conseguir armas mejores."
+                type = AdviceType.ITEM_EQUIPMENT,
+                title = "Fragmentos de Fórmula / Página (Formula Shards)",
+                objective = "Moneda especial para tirar en la máquina de fórmulas (Formula R&D) y desbloquear nuevas armas y armaduras avanzadas.",
+                whereToGo = "Máquina de Fórmulas en el Campamento, en tu Mansión, o en el menú de Mall / Eventos.",
+                whatToSearchAndBring = "Se obtienen respondiendo encuestas del juego, cofres dorados en mapas de exploración y recompensas diarias del Campamento.",
+                stepByStep = "1. Completa la encuesta que tienes en pantalla para recibir fragmentos gratis.\n2. Ve a la Máquina de Fórmulas en el Campamento o Mansión.\n3. Selecciona tirada de armas Grado 2 o 3 y fusiona tus fragmentos.",
+                proTip = "Ahorra tus fragmentos para tiradas de armas de fuego de combate (UZI, Thompson, 590M), nunca los gastes en decoraciones o muebles.",
+                spokenSummary = "Fragmentos de Fórmula. Sirven para tirar en la máquina de fórmulas y sacar armas de fuego mejores. Ahorra todos los fragmentos para fusiles o escopetas."
             )
         ),
         // Helena Wayne (Hope 101)
         AdviceEntry(
             keywords = listOf("helena", "helena wayne", "follow helena"),
             advice = GameAdvice(
+                type = AdviceType.MISSION_TACTICAL,
                 title = "Misión: Acompañar a Helena Wayne",
-                objective = "Seguir a Helena Wayne hasta su destino en Hope 101.",
-                whereToFind = "Hope 101 (Plaza del monumento conmemorativo / Zona de supervivientes).",
-                stepByStep = "1. Permanece cerca de Helena Wayne mientras camina hacia su destino.\n2. Sigue el indicador dorado en el minimapa si te separas.\n3. Al llegar, interactúa con ella para completar la misión y reclamar tu recompensa.",
-                proTip = "Hope 101 es una zona segura libre de zombis. Guarda tus armas para no gastar durabilidad.",
-                spokenSummary = "Misión activa: Sigue a Helena Wayne en Hope 101 de cerca hasta su destino para completar la misión."
+                objective = "Seguir y escoltar a Helena Wayne hasta su punto de reunión en la zona segura de Hope 101.",
+                whereToGo = "Hope 101 (Plaza del monumento conmemorativo / Zona de supervivientes).",
+                whatToSearchAndBring = "Busca a Helena Wayne (NPC con abrigo rojo y mochila). Mantén tus armas guardadas para no gastar durabilidad.",
+                stepByStep = "1. Permanece caminando a pocos metros de Helena Wayne sin adelantarte.\n2. Sigue el indicador dorado en el minimapa si la pierdes de vista.\n3. Al llegar a su destino, espera a que se detenga y habla con ella para completar la misión.",
+                proTip = "Hope 101 es una zona segura libre de zombis. No corras con sprint rápido o Helena se quedará atrás y tendrás que regresar a buscarla.",
+                spokenSummary = "Misión activa: Escolta a Helena Wayne en Hope 101. Camina a su lado hasta el punto marcado en el mapa y habla con ella al llegar."
             )
         ),
         // Rachel (Hope 101 / Commerce Guild)
         AdviceEntry(
             keywords = listOf("rachel", "talk to rachel", "find rachel"),
             advice = GameAdvice(
+                type = AdviceType.MISSION_TACTICAL,
                 title = "Misión: Hablar con Rachel",
-                objective = "Reunirte con Rachel en el Ayuntamiento de Hope 101.",
-                whereToFind = "Hope 101 (Ayuntamiento / Commerce Guild).",
-                stepByStep = "1. Dirígete al Ayuntamiento marcado en el minimapa.\n2. Sube y acércate a Rachel.\n3. Presiona el botón de diálogo para avanzar la historia.",
-                proTip = "Rachel es la guía de la Commerce Guild y te desbloqueará nuevas zonas de exploración.",
-                spokenSummary = "Ve con Rachel al ayuntamiento de Hope 101 y pulsa el botón de diálogo al acercarte."
+                objective = "Reunirte con Rachel en el Ayuntamiento de Hope 101 para avanzar en la historia de la Commerce Guild.",
+                whereToGo = "Hope 101 (Ayuntamiento / Commerce Guild, edificio principal con banderas).",
+                whatToSearchAndBring = "Busca a Rachel parada junto a la mesa de conferencias o el mostrador de bienvenida.",
+                stepByStep = "1. Abre el mapa pulsando arriba a la derecha y localiza el Ayuntamiento.\n2. Entra al edificio y sube las escaleras hacia Rachel.\n3. Presiona el botón interactivo de diálogo para continuar la historia.",
+                proTip = "Rachel desbloquea permisos para viajar a nuevos mapas infectados y otorga recompensas de supervivencia valiosas.",
+                spokenSummary = "Misión: Ve con Rachel al ayuntamiento de Hope 101, entra al edificio principal y pulsa hablar para desbloquear nuevos mapas."
             )
         ),
         // Survival Manual específico
         AdviceEntry(
             keywords = listOf("survival manual chapter", "claim survival manual"),
             advice = GameAdvice(
+                type = AdviceType.MISSION_TACTICAL,
                 title = "Manual de Supervivencia: Misión de Capítulo",
-                objective = "Completar los objetivos del capítulo actual del Manual de Supervivencia.",
-                whereToFind = "Abre 'Survival Manual' arriba a la derecha en el menú principal.",
-                stepByStep = "1. Revisa la lista de tareas del capítulo activo.\n2. Completa primero las misiones de fabricación y luego las de recolección.",
-                proTip = "El Manual de Supervivencia otorga oro y experiencia rápida para subir a nivel 15.",
-                spokenSummary = "Revisa tu manual de supervivencia arriba a la derecha para reclamar recompensas de capítulo."
+                objective = "Completar la guía de tareas del capítulo activo del Manual de Supervivencia para subir rápido a nivel 15.",
+                whereToGo = "Abre 'Survival Manual' tocando el icono del libro arriba a la derecha en la pantalla principal.",
+                whatToSearchAndBring = "Revisa los materiales o acciones requeridas en la lista del capítulo actual.",
+                stepByStep = "1. Toca el botón del Manual de Supervivencia.\n2. Revisa la lista de tareas del capítulo activo.\n3. Completa primero las misiones de fabricación y luego las de recolección en mapas.",
+                proTip = "Reclamar cada capítulo otorga armas gratis, New Dollars y grandes cantidades de oro.",
+                spokenSummary = "Revisa tu manual de supervivencia tocando el libro arriba a la derecha para completar las tareas de capítulo y ganar oro rápido."
             )
         )
     )

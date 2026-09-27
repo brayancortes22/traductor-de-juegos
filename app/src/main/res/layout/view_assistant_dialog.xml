@@ -6,188 +6,226 @@
     android:layout_margin="16dp"
     app:cardBackgroundColor="#131B2E"
     app:cardCornerRadius="16dp"
-    app:cardElevation="10dp">
+    app:cardElevation="12dp">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:fillViewport="true">
 
-        <!-- Header -->
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:id="@+id/tv_assistant_header"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:text="🧠 Copiloto IA de Juego"
-                android:textColor="#00E5FF"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/btn_assistant_close"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_alignParentEnd="true"
-                android:background="@drawable/bg_menu_item"
-                android:contentDescription="Cerrar"
-                android:src="@drawable/ic_close"
-                app:tint="#90A4AE" />
-        </RelativeLayout>
-
-        <!-- Advice Title -->
-        <TextView
-            android:id="@+id/tv_advice_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Solución de Aminoácidos Nivel 1"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <!-- Objective Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="#1E293B"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🎯 Objetivo:"
-                android:textColor="#38BDF8"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_advice_objective"
+            <!-- Header -->
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Fabricar Solución de Aminoácidos..."
-                android:textColor="#E2E8F0"
-                android:textSize="13sp" />
-        </LinearLayout>
+                android:layout_marginBottom="10dp">
 
-        <!-- Where to Find Resources Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="#1E293B"
-            android:orientation="vertical"
-            android:padding="10dp">
+                <TextView
+                    android:id="@+id/tv_assistant_header"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="🧠 Copiloto Táctico IA"
+                    android:textColor="#00E5FF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
+                <ImageView
+                    android:id="@+id/btn_assistant_close"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_alignParentEnd="true"
+                    android:background="@drawable/bg_menu_item"
+                    android:contentDescription="Cerrar"
+                    android:src="@drawable/ic_close"
+                    app:tint="#90A4AE" />
+            </RelativeLayout>
+
+            <!-- Advice Title -->
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📍 Dónde conseguir recursos:"
-                android:textColor="#4ADE80"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_advice_where"
+                android:id="@+id/tv_advice_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Madera (100) y Cáñamo (25)..."
-                android:textColor="#E2E8F0"
-                android:textSize="13sp" />
-        </LinearLayout>
-
-        <!-- Step by Step Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="#1E293B"
-            android:orientation="vertical"
-            android:padding="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🛠️ Paso a paso:"
-                android:textColor="#FBBF24"
-                android:textSize="12sp"
+                android:layout_marginBottom="8dp"
+                android:text="Misión / Habilidad"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tv_advice_steps"
+            <!-- Card 1: Objective / What is it -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="1. Pulsa el botón Formula..."
-                android:textColor="#E2E8F0"
-                android:textSize="13sp" />
-        </LinearLayout>
+                android:layout_marginBottom="8dp"
+                android:background="#1E293B"
+                android:orientation="vertical"
+                android:padding="10dp">
 
-        <!-- Pro Tip Card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:background="#2E1065"
-            android:orientation="vertical"
-            android:padding="10dp">
+                <TextView
+                    android:id="@+id/tv_label_objective"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎯 ¿Qué debo hacer?"
+                    android:textColor="#38BDF8"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ Consejo Pro:"
-                android:textColor="#E879F9"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_advice_objective"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Descripción del objetivo..."
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_advice_protip"
+            <!-- Card 2: Where to go / Menu location -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Equípalo en tu Difusor..."
-                android:textColor="#F3E8FF"
-                android:textSize="13sp" />
+                android:layout_marginBottom="8dp"
+                android:background="#1E293B"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/tv_label_where"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 ¿A dónde ir?"
+                    android:textColor="#4ADE80"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_advice_where"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Ubicación o mapa..."
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Card 3: What to search & bring / Cost & requirements -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="#1E293B"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/tv_label_search_bring"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎒 ¿Qué buscar en la zona y qué llevar?"
+                    android:textColor="#FB923C"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_advice_search_bring"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Recursos, NPC, armas requeridas..."
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Card 4: Step by step -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="#1E293B"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/tv_label_steps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🛠️ Paso a paso:"
+                    android:textColor="#FBBF24"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_advice_steps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="1. Primer paso..."
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Card 5: Pro Tip -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="#2E1065"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/tv_label_protip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Consejo Pro / Prioridad:"
+                    android:textColor="#E879F9"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_advice_protip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Recomendación táctica..."
+                    android:textColor="#F3E8FF"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Action Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_advice_speak"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="🔊 Escuchar"
+                    android:textColor="#00E5FF"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/btn_advice_dismiss"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="#00C2A8"
+                    android:text="Entendido"
+                    android:textColor="#0B111E"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
         </LinearLayout>
-
-        <!-- Action Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btn_advice_speak"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="🔊 Escuchar"
-                android:textColor="#00E5FF"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btn_advice_dismiss"
-                style="@style/Widget.MaterialComponents.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="#00C2A8"
-                android:text="Entendido"
-                android:textColor="#0B111E"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-    </LinearLayout>
+    </ScrollView>
 </androidx.cardview.widget.CardView>
