@@ -22,7 +22,10 @@ import com.bscl.gametranslator.service.ScreenCaptureService
 import com.bscl.gametranslator.util.CrashLogger
 import android.content.ClipData
 import android.content.ClipboardManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 
 class MainActivity : AppCompatActivity() {
 
