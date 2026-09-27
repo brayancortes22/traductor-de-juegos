@@ -4,7 +4,8 @@ import android.graphics.Rect
 
 data class DetectedTextBlock(
     val originalText: String,
-    val boundingBox: Rect?
+    val boundingBox: Rect?,
+    val translatedText: String = ""
 )
 
 data class TranslationResult(

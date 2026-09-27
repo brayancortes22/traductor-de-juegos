@@ -31,6 +31,9 @@ import com.bscl.gametranslator.filter.TextFilterEngine
 import com.bscl.gametranslator.glossary.GameGlossary
 import com.bscl.gametranslator.ml.OcrEngine
 import com.bscl.gametranslator.ml.TranslatorEngine
+import android.content.ClipData
+import android.content.ClipboardManager
+import com.bscl.gametranslator.model.DetectedTextBlock
 import com.bscl.gametranslator.model.TranslationMode
 import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
@@ -61,6 +64,7 @@ class ScreenCaptureService : Service() {
     private lateinit var gameGlossary: GameGlossary
     private lateinit var assistantEngine: AiGameAssistantEngine
 
+    private var currentInPlaceOverlay: InPlaceTranslationOverlayView? = null
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
@@ -217,13 +221,13 @@ class ScreenCaptureService : Service() {
 
     private fun triggerAssistantAnalysis() {
         serviceScope.launch(Dispatchers.Default) {
-            val rect = currentMode.getBoundingRect(screenWidth, screenHeight)
-            val bitmap = captureBitmapRegion(rect) ?: return@launch
+            // Captura pantalla completa con reintentos para no perder fotogramas
+            val bitmap = captureBitmapRegion(null) ?: return@launch
             val rawBlocks = ocrEngine.recognizeText(bitmap)
             bitmap.recycle()
 
             val cleanText = textFilter.extractCleanFullText(rawBlocks)
-            if (cleanText.isBlank()) {
+            if (cleanText.isBlank() && rawBlocks.isEmpty()) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ScreenCaptureService, "No se detectó texto o misiones en pantalla", Toast.LENGTH_SHORT).show()
                 }
@@ -231,7 +235,14 @@ class ScreenCaptureService : Service() {
             }
 
             val config = preferencesManager.loadConfig()
-            val advice = assistantEngine.analyzeGameContext(cleanText, config.geminiApiKey)
+            val advice = assistantEngine.analyzeGameContext(
+                ocrText = cleanText,
+                apiKey = config.geminiApiKey,
+                blocks = rawBlocks,
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                translatorEngine = translatorEngine
+            )
 
             withContext(Dispatchers.Main) {
                 assistantDialogManager.showAdvice(advice)
@@ -254,7 +265,7 @@ class ScreenCaptureService : Service() {
 
                     if (diff > 4) {
                         lastFrameHash = currentHash
-                        processBitmapAndTranslate(bitmap, isAuto = true)
+                        processBitmapAndTranslate(bitmap, isAuto = true, offsetRect = rect)
                     } else {
                         bitmap.recycle()
                     }
@@ -264,9 +275,18 @@ class ScreenCaptureService : Service() {
         }
     }
 
-    private fun captureBitmapRegion(rect: Rect?): Bitmap? {
+    private suspend fun captureBitmapRegion(rect: Rect?): Bitmap? {
         val reader = imageReader ?: return null
-        val image = reader.acquireLatestImage() ?: return null
+        var image = reader.acquireLatestImage()
+        var retries = 0
+        // Esperar activamente hasta 300ms a que el VirtualDisplay produzca un nuevo frame
+        while (image == null && retries < 6) {
+            delay(50)
+            image = reader.acquireLatestImage()
+            retries++
+        }
+        if (image == null) return null
+
         val planes = image.planes
         val buffer = planes[0].buffer
         val pixelStride = planes[0].pixelStride
@@ -296,10 +316,9 @@ class ScreenCaptureService : Service() {
     }
 
     private fun captureAndTranslate(rect: Rect?) {
-        resultDialogManager.showLoading()
         serviceScope.launch(Dispatchers.Default) {
             val bitmap = captureBitmapRegion(rect) ?: return@launch
-            processBitmapAndTranslate(bitmap, isAuto = false)
+            processBitmapAndTranslate(bitmap, isAuto = false, offsetRect = rect)
         }
     }
 
@@ -316,7 +335,11 @@ class ScreenCaptureService : Service() {
         snipView.attach()
     }
 
-    private suspend fun processBitmapAndTranslate(bitmap: Bitmap, isAuto: Boolean) {
+    private suspend fun processBitmapAndTranslate(
+        bitmap: Bitmap,
+        isAuto: Boolean,
+        offsetRect: Rect? = null
+    ) {
         val config = preferencesManager.loadConfig()
         val rawBlocks = ocrEngine.recognizeText(bitmap)
         bitmap.recycle()
@@ -327,29 +350,54 @@ class ScreenCaptureService : Service() {
             rawBlocks
         }
 
-        val fullText = blocks.joinToString("\n") { it.originalText }
-
-        if (fullText.isEmpty()) {
+        if (blocks.isEmpty()) {
             if (!isAuto) {
                 withContext(Dispatchers.Main) {
-                    resultDialogManager.showResult(TranslationResult("", ""), config.autoCopyToClipboard)
+                    Toast.makeText(this@ScreenCaptureService, "No se detectó texto en pantalla", Toast.LENGTH_SHORT).show()
                 }
             }
             return
         }
 
         try {
-            var translated = translatorEngine.translateText(fullText, config.sourceLanguage, config.targetLanguage)
+            // Traducir cada bloque conservando su posición original en pantalla
+            val translatedBlocks = blocks.map { block ->
+                var trans = translatorEngine.translateText(
+                    block.originalText,
+                    config.sourceLanguage,
+                    config.targetLanguage
+                )
+                if (config.enableAiMaxGlossary) {
+                    trans = gameGlossary.applyGlossary(trans)
+                }
 
-            if (config.enableAiMaxGlossary) {
-                translated = gameGlossary.applyGlossary(translated)
+                val adjustedRect = if (offsetRect != null && block.boundingBox != null) {
+                    Rect(
+                        block.boundingBox.left + offsetRect.left,
+                        block.boundingBox.top + offsetRect.top,
+                        block.boundingBox.right + offsetRect.left,
+                        block.boundingBox.bottom + offsetRect.top
+                    )
+                } else {
+                    block.boundingBox
+                }
+                block.copy(boundingBox = adjustedRect, translatedText = trans)
             }
 
+            val fullTranslated = translatedBlocks.joinToString("\n") { it.translatedText }
+
             withContext(Dispatchers.Main) {
-                resultDialogManager.showResult(TranslationResult(fullText, translated, blocks), config.autoCopyToClipboard)
+                // Desplegar superposición directa sobre el texto en inglés
+                showInPlaceOverlay(translatedBlocks)
+                resultDialogManager.dismiss()
+
+                if (config.autoCopyToClipboard && fullTranslated.isNotBlank()) {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Traducción", fullTranslated))
+                }
 
                 if (config.enableVoiceAssistant && (currentMode == TranslationMode.LIFEAFTER_QUESTS || isAuto)) {
-                    val firstSentence = translated.lines().firstOrNull { it.isNotBlank() } ?: ""
+                    val firstSentence = fullTranslated.lines().firstOrNull { it.isNotBlank() } ?: ""
                     if (firstSentence.length in 5..120) {
                         voiceNarrator.speak(firstSentence)
                     }
@@ -358,10 +406,19 @@ class ScreenCaptureService : Service() {
         } catch (e: Exception) {
             if (!isAuto) {
                 withContext(Dispatchers.Main) {
-                    resultDialogManager.showResult(TranslationResult(fullText, "", isSuccess = false, errorMessage = e.message), false)
+                    Toast.makeText(this@ScreenCaptureService, "Error al traducir: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    private fun showInPlaceOverlay(blocks: List<DetectedTextBlock>) {
+        currentInPlaceOverlay?.detach()
+        val overlay = InPlaceTranslationOverlayView(this, blocks) {
+            currentInPlaceOverlay = null
+        }
+        currentInPlaceOverlay = overlay
+        overlay.attach()
     }
 
     private fun setupNotificationChannel() {
@@ -387,6 +444,8 @@ class ScreenCaptureService : Service() {
         realTimeJob?.cancel()
         voiceNarrator.shutdown()
         bubbleManager.hide()
+        currentInPlaceOverlay?.detach()
+        currentInPlaceOverlay = null
         resultDialogManager.dismiss()
         assistantDialogManager.dismiss()
         virtualDisplay?.release()
