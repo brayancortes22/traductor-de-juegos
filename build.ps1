@@ -5,35 +5,48 @@ Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host "  🎮 Traductor de Juegos — Build & Deploy" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 
-# 1. Verificar si hay dispositivos conectados por ADB
-Write-Host "`n[1/3] Verificando dispositivos Android conectados por ADB..." -ForegroundColor Yellow
-$adbCmd = Get-Command adb -ErrorAction SilentlyContinue
-if ($adbCmd) {
-    & adb devices
-} else {
-    Write-Host "ADB no encontrado en PATH. Puedes compilar directamente abriendo el proyecto en Android Studio." -ForegroundColor Gray
+# 1. Localizar ADB (en PATH o en platform-tools local)
+$adb = "adb"
+$adbFound = Get-Command adb -ErrorAction SilentlyContinue
+if (-not $adbFound) {
+    $fallbackAdb = "C:\Users\NITRO ACER\Desktop\proyectos con ia\app de netflix modo tv\platform-tools\adb.exe"
+    if (Test-Path $fallbackAdb) {
+        $adb = $fallbackAdb
+        Write-Host "[OK] ADB localizado en: $adb" -ForegroundColor Green
+    }
 }
 
-# 2. Instrucciones para compilar en Android Studio
-Write-Host "`n[2/3] Para compilar y generar el APK:" -ForegroundColor Yellow
-Write-Host "  1. Abre Android Studio." -ForegroundColor White
-Write-Host "  2. Selecciona 'Open' y elige esta carpeta:" -ForegroundColor White
-Write-Host "     $(Get-Location)" -ForegroundColor Green
-Write-Host "  3. Presiona 'Run' (Shift + F10) con tu celular o tablet conectado por USB o Wi-Fi." -ForegroundColor White
-Write-Host "  4. O ve al menu 'Build' -> 'Build Bundle(s) / APK(s)' -> 'Build APK(s)'." -ForegroundColor White
+# 2. Verificar dispositivos Android conectados
+Write-Host "`n[1/3] Verificando dispositivos Android conectados..." -ForegroundColor Yellow
+$devices = & $adb devices -l
+$devices | Out-String | Write-Host -ForegroundColor White
 
-# 3. Comprobar existencia del APK compilado
+$connectedDevice = $devices | Where-Object { $_ -match "device\b" -and $_ -notmatch "List of" }
+
+if ($connectedDevice) {
+    Write-Host ">>> Dispositivo detectado exitosamente!" -ForegroundColor Green
+} else {
+    Write-Host ">>> [AVISO IMPORTANTE PARA SAMSUNG GALAXY TAB]:" -ForegroundColor Red
+    Write-Host "    Si la depuracion USB dice 'Bloqueado por Bloqueador automatico':" -ForegroundColor Yellow
+    Write-Host "    1. En tu tablet ve a: Ajustes -> Seguridad y privacidad." -ForegroundColor White
+    Write-Host "    2. Toca en: Bloqueador automatico (Auto Blocker)." -ForegroundColor White
+    Write-Host "    3. Desactivalo (ponlo en Desactivado)." -ForegroundColor White
+    Write-Host "    4. Vuelve a Opciones de desarrollador y activa Depuracion por USB." -ForegroundColor White
+    Write-Host "    5. Acepta el mensaje en la pantalla de la tablet: 'Permitir siempre'." -ForegroundColor White
+}
+
+# 3. Compilación y APK
 $apkPath = "app\build\outputs\apk\debug\app-debug.apk"
-Write-Host "`n[3/3] Verificando APK generado..." -ForegroundColor Yellow
+Write-Host "`n[2/3] Verificando estado del APK..." -ForegroundColor Yellow
 if (Test-Path $apkPath) {
-    Write-Host "APK encontrado en: $apkPath" -ForegroundColor Green
-    if ($adbCmd) {
-        $installChoice = Read-Host "¿Deseas instalarlo ahora en tu dispositivo conectado? (s/n)"
-        if ($installChoice -eq "s") {
-            & adb install -r $apkPath
-            Write-Host "Instalación completada. Abre la app en tu celular/tablet." -ForegroundColor Green
-        }
+    Write-Host "APK listo en: $apkPath" -ForegroundColor Green
+    if ($connectedDevice) {
+        Write-Host "`n[3/3] Instalando en tu tablet..." -ForegroundColor Yellow
+        & $adb install -r $apkPath
+        Write-Host ">>> ¡Instalacion completada! Abre Traductor de Juegos en tu tablet." -ForegroundColor Green
     }
 } else {
-    Write-Host "El APK aún no ha sido generado. Compílalo en Android Studio o con './gradlew assembleDebug'." -ForegroundColor Gray
+    Write-Host "Para compilar el APK:" -ForegroundColor Yellow
+    Write-Host "1. Abre la carpeta del proyecto en Android Studio." -ForegroundColor White
+    Write-Host "2. Presiona Shift + F10 o ve a Build -> Build APK(s)." -ForegroundColor White
 }

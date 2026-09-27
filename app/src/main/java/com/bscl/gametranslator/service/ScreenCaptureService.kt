@@ -17,19 +17,17 @@ import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.IBinder
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.bscl.gametranslator.R
 import com.bscl.gametranslator.data.PreferencesManager
 import com.bscl.gametranslator.ml.OcrEngine
 import com.bscl.gametranslator.ml.TranslatorEngine
+import com.bscl.gametranslator.model.TranslationMode
 import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.bscl.gametranslator.util.ImageHashUtil
+import kotlinx.coroutines.*
 
 class ScreenCaptureService : Service() {
 
@@ -44,9 +42,14 @@ class ScreenCaptureService : Service() {
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
 
-    private var screenWidth = 1080
-    private var screenHeight = 1920
+    private var screenWidth = 1340
+    private var screenHeight = 800
     private var screenDensity = 320
+
+    private var currentMode = TranslationMode.FULL_SCREEN
+    private var isRealTimeActive = false
+    private var realTimeJob: Job? = null
+    private var lastFrameHash = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -62,8 +65,8 @@ class ScreenCaptureService : Service() {
         bubbleManager = FloatingBubbleManager(
             context = this,
             preferencesManager = preferencesManager,
-            onClick = { captureAndTranslateFull() },
-            onLongClick = { startSnippingMode() }
+            onSelectMode = { mode -> executeMode(mode) },
+            onToggleRealTime = { toggleRealTimeMode() }
         )
         bubbleManager.show()
     }
@@ -92,13 +95,7 @@ class ScreenCaptureService : Service() {
     @SuppressLint("WrongConstant")
     private fun setupVirtualDisplay() {
         val projection = mediaProjection ?: return
-        imageReader = ImageReader.newInstance(
-            screenWidth,
-            screenHeight,
-            PixelFormat.RGBA_8888,
-            2
-        )
-
+        imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         virtualDisplay = projection.createVirtualDisplay(
             "GameTranslatorCapture",
             screenWidth,
@@ -111,7 +108,55 @@ class ScreenCaptureService : Service() {
         )
     }
 
-    private fun captureCurrentBitmap(): Bitmap? {
+    private fun executeMode(mode: TranslationMode) {
+        currentMode = mode
+        when (mode) {
+            TranslationMode.FULL_SCREEN -> captureAndTranslate(null)
+            TranslationMode.PARTIAL_CROP -> startSnippingMode()
+            TranslationMode.LIFEAFTER_QUESTS,
+            TranslationMode.LIFEAFTER_SHOP,
+            TranslationMode.LIFEAFTER_CHAT -> {
+                val rect = mode.getBoundingRect(screenWidth, screenHeight)
+                captureAndTranslate(rect)
+            }
+        }
+    }
+
+    private fun toggleRealTimeMode(): Boolean {
+        isRealTimeActive = !isRealTimeActive
+        if (isRealTimeActive) {
+            Toast.makeText(this, "${getString(R.string.realtime_active_toast)} ${currentMode.displayName}", Toast.LENGTH_SHORT).show()
+            startRealTimeAutoScan()
+        } else {
+            Toast.makeText(this, R.string.realtime_stopped_toast, Toast.LENGTH_SHORT).show()
+            realTimeJob?.cancel()
+        }
+        return isRealTimeActive
+    }
+
+    private fun startRealTimeAutoScan() {
+        realTimeJob?.cancel()
+        realTimeJob = serviceScope.launch(Dispatchers.Default) {
+            while (isActive && isRealTimeActive) {
+                val rect = currentMode.getBoundingRect(screenWidth, screenHeight)
+                val bitmap = captureBitmapRegion(rect)
+                if (bitmap != null) {
+                    val currentHash = ImageHashUtil.computeDHash(bitmap)
+                    val diff = ImageHashUtil.hammingDistance(lastFrameHash, currentHash)
+
+                    if (diff > 4) {
+                        lastFrameHash = currentHash
+                        processBitmapAndTranslate(bitmap, isAuto = true)
+                    } else {
+                        bitmap.recycle()
+                    }
+                }
+                delay(1500)
+            }
+        }
+    }
+
+    private fun captureBitmapRegion(rect: Rect?): Bitmap? {
         val reader = imageReader ?: return null
         val image = reader.acquireLatestImage() ?: return null
         val planes = image.planes
@@ -120,31 +165,33 @@ class ScreenCaptureService : Service() {
         val rowStride = planes[0].rowStride
         val rowPadding = rowStride - pixelStride * screenWidth
 
-        val bitmap = Bitmap.createBitmap(
+        val fullBitmap = Bitmap.createBitmap(
             screenWidth + rowPadding / pixelStride,
             screenHeight,
             Bitmap.Config.ARGB_8888
         )
-        bitmap.copyPixelsFromBuffer(buffer)
+        fullBitmap.copyPixelsFromBuffer(buffer)
         image.close()
 
-        return Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight)
+        val cleanBitmap = Bitmap.createBitmap(fullBitmap, 0, 0, screenWidth, screenHeight)
+        if (cleanBitmap != fullBitmap) fullBitmap.recycle()
+
+        if (rect == null) return cleanBitmap
+
+        val safeW = rect.width().coerceAtMost(screenWidth - rect.left)
+        val safeH = rect.height().coerceAtMost(screenHeight - rect.top)
+        if (safeW <= 0 || safeH <= 0) return cleanBitmap
+
+        val cropped = Bitmap.createBitmap(cleanBitmap, rect.left, rect.top, safeW, safeH)
+        cleanBitmap.recycle()
+        return cropped
     }
 
-    private fun captureAndTranslateFull() {
+    private fun captureAndTranslate(rect: Rect?) {
         resultDialogManager.showLoading()
         serviceScope.launch(Dispatchers.Default) {
-            val bitmap = captureCurrentBitmap()
-            if (bitmap == null) {
-                withContext(Dispatchers.Main) {
-                    resultDialogManager.showResult(
-                        TranslationResult("", "", isSuccess = false, errorMessage = "Error capturando pantalla"),
-                        false
-                    )
-                }
-                return@launch
-            }
-            processBitmapAndTranslate(bitmap)
+            val bitmap = captureBitmapRegion(rect) ?: return@launch
+            processBitmapAndTranslate(bitmap, isAuto = false)
         }
     }
 
@@ -154,85 +201,50 @@ class ScreenCaptureService : Service() {
             context = this,
             onAreaSelected = { rect ->
                 bubbleManager.setVisible(true)
-                captureAndTranslateCrop(rect)
+                captureAndTranslate(rect)
             },
-            onCancelled = {
-                bubbleManager.setVisible(true)
-            }
+            onCancelled = { bubbleManager.setVisible(true) }
         )
         snipView.attach()
     }
 
-    private fun captureAndTranslateCrop(rect: Rect) {
-        resultDialogManager.showLoading()
-        serviceScope.launch(Dispatchers.Default) {
-            val fullBitmap = captureCurrentBitmap() ?: return@launch
-            val safeWidth = (rect.width()).coerceAtMost(fullBitmap.width - rect.left)
-            val safeHeight = (rect.height()).coerceAtMost(fullBitmap.height - rect.top)
-
-            if (safeWidth <= 0 || safeHeight <= 0) return@launch
-            val cropped = Bitmap.createBitmap(fullBitmap, rect.left, rect.top, safeWidth, safeHeight)
-            processBitmapAndTranslate(cropped)
-        }
-    }
-
-    private suspend fun processBitmapAndTranslate(bitmap: Bitmap) {
+    private suspend fun processBitmapAndTranslate(bitmap: Bitmap, isAuto: Boolean) {
         val config = preferencesManager.loadConfig()
         val blocks = ocrEngine.recognizeText(bitmap)
         val fullText = blocks.joinToString(" ") { it.originalText }
+        bitmap.recycle()
 
         if (fullText.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                resultDialogManager.showResult(
-                    TranslationResult("", "", blocks = emptyList()),
-                    config.autoCopyToClipboard
-                )
+            if (!isAuto) {
+                withContext(Dispatchers.Main) {
+                    resultDialogManager.showResult(TranslationResult("", ""), config.autoCopyToClipboard)
+                }
             }
             return
         }
 
         try {
-            val translated = translatorEngine.translateText(
-                fullText,
-                config.sourceLanguage,
-                config.targetLanguage
-            )
+            val translated = translatorEngine.translateText(fullText, config.sourceLanguage, config.targetLanguage)
             withContext(Dispatchers.Main) {
-                resultDialogManager.showResult(
-                    TranslationResult(fullText, translated, blocks),
-                    config.autoCopyToClipboard
-                )
+                resultDialogManager.showResult(TranslationResult(fullText, translated, blocks), config.autoCopyToClipboard)
             }
         } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                resultDialogManager.showResult(
-                    TranslationResult(fullText, "", isSuccess = false, errorMessage = e.message),
-                    false
-                )
+            if (!isAuto) {
+                withContext(Dispatchers.Main) {
+                    resultDialogManager.showResult(TranslationResult(fullText, "", isSuccess = false, errorMessage = e.message), false)
+                }
             }
         }
     }
 
     private fun setupNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Traductor de Juegos",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Servicio de traducción en pantalla"
-        }
+        val channel = NotificationChannel(CHANNEL_ID, "Traductor de Juegos", NotificationManager.IMPORTANCE_LOW)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
     }
 
     private fun buildNotification(): Notification {
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
+        val pendingIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.service_notification_title))
             .setContentText(getString(R.string.service_notification_desc))
@@ -244,6 +256,8 @@ class ScreenCaptureService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRealTimeActive = false
+        realTimeJob?.cancel()
         bubbleManager.hide()
         resultDialogManager.dismiss()
         virtualDisplay?.release()

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Traductor de Juegos</string>
     <string name="service_notification_title">Traductor de Juegos Activo</string>
-    <string name="service_notification_desc">Toca la burbuja flotante para traducir textos en pantalla</string>
+    <string name="service_notification_desc">Toca la burbuja flotante para elegir modo de traducción</string>
     <string name="btn_start_service">Iniciar Servicio Flotante</string>
     <string name="btn_stop_service">Detener Servicio</string>
     <string name="btn_grant_overlay">Conceder Permiso de Superposición</string>
@@ -23,4 +23,15 @@
     <string name="pref_target_lang">Idioma de Destino (Traducción)</string>
     <string name="pref_bubble_opacity">Opacidad de la Burbuja</string>
     <string name="pref_auto_copy">Copiar al portapapeles automáticamente</string>
+
+    <!-- Modos de Traducción -->
+    <string name="menu_title">Modos de Traducción</string>
+    <string name="mode_full_screen">Pantalla Completa</string>
+    <string name="mode_partial_crop">Recorte Libre</string>
+    <string name="mode_quests">Misiones</string>
+    <string name="mode_shop">Tienda / Fórmulas</string>
+    <string name="mode_chat">Diálogos / Chat</string>
+    <string name="mode_realtime_toggle">Auto-Scan en Tiempo Real</string>
+    <string name="realtime_active_toast">Modo tiempo real activado para:</string>
+    <string name="realtime_stopped_toast">Modo tiempo real desactivado</string>
 </resources>

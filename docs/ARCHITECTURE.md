@@ -5,49 +5,48 @@ Aplicación Android nativa desarrollada en **Kotlin** para traducción de textos
 
 ---
 
-## 📐 Diagrama de Arquitectura de Componentes
+## 🎮 Modos de Traducción Específicos para LifeAfter
 
-```mermaid
-graph TD
-    User["👤 Jugador (LifeAfter en Celular/Tablet)"]
-    Bubble["🫧 FloatingBubbleManager (Burbuja Flotante)"]
-    Snip["✂️ SnipOverlayView (Recorte Táctil)"]
-    Capture["📸 MediaProjection API (ScreenCaptureService)"]
-    OCR["🔍 OcrEngine (Google ML Kit Text Recognition)"]
-    Cache["⚡ LRU Cache (Memoria Local)"]
-    Translate["🌐 TranslatorEngine (ML Kit Offline Translation)"]
-    ResultHUD["🪟 ResultDialogManager (HUD Flotante Glassmorphic)"]
+A partir del análisis de las capturas de pantalla de la tablet (resolución nativa `1340 x 800` en modo horizontal):
 
-    User -->|Tap rápido| Bubble
-    User -->|Long press / arrastrar| Snip
-    Bubble -->|Solicitar frame completo| Capture
-    Snip -->|Coordenadas ROI| Capture
-    Capture -->|Bitmap crudo / recortado| OCR
-    OCR -->|Bloques de texto detectados| Cache
-    Cache -->|¿Texto ya traducido?| ResultHUD
-    Cache -->|Texto nuevo| Translate
-    Translate -->|Descarga modelo una sola vez| Translate
-    Translate -->|Traducción al español| ResultHUD
-    ResultHUD -->|Superposición Always-on-Top| User
-```
+1. 📸 **Traducción de Pantalla Completa (`FULL_SCREEN`):**
+   - Captura y analiza todo el fotograma con un solo toque en la burbuja.
+2. ✂️ **Traducción Parcial / Francotirador (`PARTIAL_CROP`):**
+   - Capa interactiva (`SnipOverlayView`) que permite arrastrar el dedo para recortar una descripción específica (armas, cartas de sobrevivientes o recetas).
+3. 📜 **Modo Misiones (`LIFEAFTER_QUESTS`):**
+   - Zona delimitada: Superior izquierda (`X: 0% a 42%`, `Y: 10% a 65%`).
+   - Monitorea objetivos de misiones (Helena, Survival Manual, World Events).
+4. 🏪 **Modo Tienda / Fórmulas / Crafteo (`LIFEAFTER_SHOP`):**
+   - Zona delimitada: Panel central modal (`X: 5% a 95%`, `Y: 8% a 92%`).
+   - Traduce catálogos de crafteo, ingredientes, descripciones y requisitos de campamento.
+5. 💬 **Modo Diálogos / Notificaciones / Chat (`LIFEAFTER_CHAT`):**
+   - Zona delimitada: Centro inferior (`X: 25% a 75%`, `Y: 75% a 98%`).
+   - Traduce mensajes de chat global, anuncios del sistema y diálogos de NPCs.
+6. ⚡ **Traducción Automática / Tiempo Real (Auto-Scan con dHash):**
+   - Bucle en corrutina (`Dispatchers.Default`) que captura la zona activa cada 1.5 segundos.
+   - Aplica **Difference Hash (dHash de 64 bits)** mediante [`ImageHashUtil.kt`](../app/src/main/java/com/bscl/gametranslator/util/ImageHashUtil.kt). Si el texto no cambia (`Hamming Distance <= 4`), omite el OCR y la traducción, consumiendo casi 0% de CPU y preservando la batería del dispositivo.
 
 ---
 
-## 🧩 Capas y Principios de Diseño
+## 📐 Diagrama de Flujo de Modos
 
-### 1. Capa de Presentación Flotante (`service/` & `ui/`)
-- **`FloatingBubbleManager.kt`**: Implementa una ventana flotante mediante `WindowManager` (`TYPE_APPLICATION_OVERLAY`). Soporta arrastre suave por la pantalla y auto-alineación a los bordes de la pantalla (*snap to edge*).
-- **`SnipOverlayView.kt`**: Vista translúcida superpuesta que captura eventos `MotionEvent` para dibujar un recuadro de selección en pantalla cuando el usuario desea traducir un menú o diálogo específico.
-- **`ResultDialogManager.kt`**: Ventana flotante estilo *glassmorphic* que muestra el texto traducido sin interferir en los controles del juego, con botón de copiado rápido al portapapeles.
+```mermaid
+graph TD
+    Bubble["🫧 Burbuja Flotante"] -->|Tap| Menu["📑 Menú Flotante de Modos"]
+    Menu -->|Opción 1| Full["📸 Pantalla Completa"]
+    Menu -->|Opción 2| Crop["✂️ Recorte Libre con Dedo"]
+    Menu -->|Opción 3| Quests["📜 Misiones (LifeAfter)"]
+    Menu -->|Opción 4| Shop["🏪 Tienda / Fórmulas"]
+    Menu -->|Opción 5| Chat["💬 Diálogos / Chat"]
+    Menu -->|Opción 6| RealTime["⚡ Auto-Scan Tiempo Real"]
 
-### 2. Capa de Captura del Sistema (`service/ScreenCaptureService.kt`)
-- Implementado como un **Foreground Service** con tipo `mediaProjection` para compatibilidad estricta con Android 10 hasta Android 14+.
-- Utiliza `ImageReader` en formato `RGBA_8888` para capturar el contenido gráfico del juego de forma pasiva, sin inyección de DLL ni hooks de memoria.
-
-### 3. Capa de Inteligencia Artificial Local (`ml/`)
-- **`OcrEngine.kt`**: Integra `com.google.mlkit:text-recognition` para extraer texto en milisegundos con alta precisión, aislando las coordenadas de cada bloque.
-- **`TranslatorEngine.kt`**: Utiliza `com.google.mlkit:translate` para traducir de forma 100% offline una vez descargado el paquete de lenguaje (~30 MB).
-- **Caché LRU**: Almacena en memoria las traducciones de diálogos y elementos recurrentes de la interfaz para reducir la latencia a 0 ms.
-
-### 4. Capa de Configuración Dinámica (`data/` & `model/`)
-- **Cero Hardcoding**: Ningún string, código de idioma o valor de opacidad está quemado en la lógica. Todo se gestiona a través de `PreferencesManager` y Enums tipados (`SupportedLanguage`, `CaptureMode`).
+    RealTime -->|Bucle cada 1.5s| dHash["🔍 Comparador dHash"]
+    dHash -->|¿Imagen cambió?| Yes["✅ Sí: OCR + ML Kit Translate"]
+    dHash -->|¿Imagen idéntica?| No["❌ No: 0% CPU, omitir"]
+    Yes --> HUD["🪟 ResultDialogManager (Always-on-Top)"]
+    Full --> HUD
+    Crop --> HUD
+    Quests --> HUD
+    Shop --> HUD
+    Chat --> HUD
+```

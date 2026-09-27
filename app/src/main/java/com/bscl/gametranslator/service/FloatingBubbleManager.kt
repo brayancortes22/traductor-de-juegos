@@ -8,20 +8,25 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.bscl.gametranslator.R
 import com.bscl.gametranslator.data.PreferencesManager
+import com.bscl.gametranslator.model.TranslationMode
 import kotlin.math.abs
 
 class FloatingBubbleManager(
     private val context: Context,
     private val preferencesManager: PreferencesManager,
-    private val onClick: () -> Unit,
-    private val onLongClick: () -> Unit
+    private val onSelectMode: (TranslationMode) -> Unit,
+    private val onToggleRealTime: () -> Boolean
 ) {
 
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var bubbleView: View? = null
-    private var params: WindowManager.LayoutParams? = null
+    private var menuView: View? = null
+    private var bubbleParams: WindowManager.LayoutParams? = null
 
     private var initialX = 0
     private var initialY = 0
@@ -53,7 +58,7 @@ class FloatingBubbleManager(
             x = savedX
             y = savedY
         }
-        params = layoutParams
+        bubbleParams = layoutParams
 
         view.setOnTouchListener { _, event ->
             handleTouchEvent(event)
@@ -63,7 +68,7 @@ class FloatingBubbleManager(
     }
 
     private fun handleTouchEvent(event: MotionEvent): Boolean {
-        val currentParams = params ?: return false
+        val currentParams = bubbleParams ?: return false
         val currentView = bubbleView ?: return false
 
         when (event.action) {
@@ -82,6 +87,7 @@ class FloatingBubbleManager(
 
                 if (abs(dx) > 10 || abs(dy) > 10) {
                     isDragging = true
+                    hideMenu()
                 }
 
                 if (isDragging) {
@@ -94,7 +100,7 @@ class FloatingBubbleManager(
 
             MotionEvent.ACTION_UP -> {
                 if (!isDragging) {
-                    onClick()
+                    toggleMenu()
                 } else {
                     snapToEdge()
                 }
@@ -104,11 +110,84 @@ class FloatingBubbleManager(
         return false
     }
 
+    @SuppressLint("InflateParams")
+    private fun toggleMenu() {
+        if (menuView != null) {
+            hideMenu()
+            return
+        }
+
+        val inflater = LayoutInflater.from(context)
+        val view = inflater.inflate(R.layout.view_floating_menu, null)
+        menuView = view
+
+        val bParams = bubbleParams ?: return
+        val screenWidth = context.resources.displayMetrics.widthPixels
+        val isLeft = bParams.x < screenWidth / 2
+
+        val menuParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = if (isLeft) bParams.x + 140 else bParams.x - 420
+            y = (bParams.y - 80).coerceAtLeast(40)
+        }
+
+        view.findViewById<View>(R.id.btn_menu_close).setOnClickListener { hideMenu() }
+        view.findViewById<View>(R.id.btn_mode_full).setOnClickListener {
+            hideMenu()
+            onSelectMode(TranslationMode.FULL_SCREEN)
+        }
+        view.findViewById<View>(R.id.btn_mode_crop).setOnClickListener {
+            hideMenu()
+            onSelectMode(TranslationMode.PARTIAL_CROP)
+        }
+        view.findViewById<View>(R.id.btn_mode_quests).setOnClickListener {
+            hideMenu()
+            onSelectMode(TranslationMode.LIFEAFTER_QUESTS)
+        }
+        view.findViewById<View>(R.id.btn_mode_shop).setOnClickListener {
+            hideMenu()
+            onSelectMode(TranslationMode.LIFEAFTER_SHOP)
+        }
+        view.findViewById<View>(R.id.btn_mode_chat).setOnClickListener {
+            hideMenu()
+            onSelectMode(TranslationMode.LIFEAFTER_CHAT)
+        }
+        view.findViewById<View>(R.id.btn_mode_realtime).setOnClickListener {
+            val isActive = onToggleRealTime()
+            val tvLabel = view.findViewById<TextView>(R.id.tv_realtime_label)
+            val ivIcon = view.findViewById<ImageView>(R.id.iv_realtime_indicator)
+            if (isActive) {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
+            } else {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
+            }
+        }
+
+        windowManager.addView(view, menuParams)
+    }
+
+    fun hideMenu() {
+        menuView?.let {
+            if (it.parent != null) {
+                windowManager.removeView(it)
+            }
+            menuView = null
+        }
+    }
+
     private fun snapToEdge() {
-        val currentParams = params ?: return
+        val currentParams = bubbleParams ?: return
         val currentView = bubbleView ?: return
-        val displayMetrics = context.resources.displayMetrics
-        val screenWidth = displayMetrics.widthPixels
+        val screenWidth = context.resources.displayMetrics.widthPixels
 
         currentParams.x = if (currentParams.x + (currentView.width / 2) < screenWidth / 2) {
             0
@@ -122,13 +201,15 @@ class FloatingBubbleManager(
 
     fun setVisible(visible: Boolean) {
         bubbleView?.visibility = if (visible) View.VISIBLE else View.GONE
+        if (!visible) hideMenu()
     }
 
     fun hide() {
+        hideMenu()
         bubbleView?.let {
             windowManager.removeView(it)
             bubbleView = null
-            params = null
+            bubbleParams = null
         }
     }
 }
