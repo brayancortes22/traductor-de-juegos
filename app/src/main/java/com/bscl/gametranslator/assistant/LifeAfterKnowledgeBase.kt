@@ -105,6 +105,20 @@ class LifeAfterKnowledgeBase {
                 spokenSummary = "Misión activa: Habla con Anna. Acércate a la paramédica frente a la camilla y toca el botón naranja Talk a la derecha para continuar."
             )
         ),
+        // Harold (Fatal Trials)
+        AdviceEntry(
+            keywords = listOf("harold", "follow harold"),
+            advice = GameAdvice(
+                type = AdviceType.MISSION_TACTICAL,
+                title = "Misión: Seguir a Harold (Fatal Trials)",
+                objective = "Seguir a Harold hacia una zona segura manteniéndote a su paso.",
+                whereToGo = "Sigue la estela dorada y la distancia en metros hacia Harold (delante de ti).",
+                whatToSearchAndBring = "Sigue a Harold (superviviente corriendo hacia el refugio). Guarda tus armas para no gastar durabilidad.",
+                stepByStep = "1. Avanza en la dirección donde corre Harold.\n2. Evita detenerte por el camino para no ser emboscado por infectados.\n3. Al llegar a la zona segura, espera a que se detenga y habla con él.",
+                proTip = "Arrastra hacia arriba el joystick de movimiento para activar el sprint rápido y no perder a Harold de vista.",
+                spokenSummary = "Misión activa: Sigue a Harold hacia el refugio seguro. No te separes y sigue el indicador de metros para llegar al destino."
+            )
+        ),
         // Survival Manual específico
         AdviceEntry(
             keywords = listOf("survival manual chapter", "claim survival manual"),

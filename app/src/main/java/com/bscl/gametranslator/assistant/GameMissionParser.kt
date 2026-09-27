@@ -33,7 +33,7 @@ class GameMissionParser {
 
     private val knownNpcs = listOf(
         "Helena Wayne", "Helena", "Rachel", "Justin", "Chris", "Edward",
-        "Fernandez", "Arthur", "Ingrid", "Billy", "Alex", "Ivan", "Anna", "Mia"
+        "Fernandez", "Arthur", "Ingrid", "Billy", "Alex", "Ivan", "Anna", "Mia", "Harold"
     )
 
     fun parseMission(
