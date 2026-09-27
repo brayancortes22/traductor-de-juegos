@@ -33,7 +33,7 @@ class GameMissionParser {
 
     private val knownNpcs = listOf(
         "Helena Wayne", "Helena", "Rachel", "Justin", "Chris", "Edward",
-        "Fernandez", "Arthur", "Ingrid", "Billy", "Alex", "Ivan"
+        "Fernandez", "Arthur", "Ingrid", "Billy", "Alex", "Ivan", "Anna", "Mia"
     )
 
     fun parseMission(
@@ -120,7 +120,7 @@ class GameMissionParser {
             lower.contains("follow") || lower.contains("escort") || lower.contains("accompany") ->
                 MissionActionType.FOLLOW_ESCORT
 
-            lower.contains("talk") || lower.contains("speak") || lower.contains("report to") || lower.contains("meet") || lower.contains("tell") ->
+            lower.contains("talk") || lower.contains("speak") || lower.contains("report to") || lower.contains("meet") || lower.contains("tell") || lower.contains("see what") || lower.contains("go see") ->
                 MissionActionType.TALK_INTERACT
 
             lower.contains("defeat") || lower.contains("kill") || lower.contains("eliminate") || lower.contains("hunt") || lower.contains("clear") ->

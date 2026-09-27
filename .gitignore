@@ -19,3 +19,7 @@ dist_*/
 *.zip
 screen_*.png
 imagenes juego/screen_*.png
+
+apk_tactical/
+*.png
+artifact.zip

@@ -91,6 +91,20 @@ class LifeAfterKnowledgeBase {
                 spokenSummary = "Misión: Ve con Rachel al ayuntamiento de Hope 101, entra al edificio principal y pulsa hablar para desbloquear nuevos mapas."
             )
         ),
+        // Anna (Medical Personnel / Fatal Trials)
+        AdviceEntry(
+            keywords = listOf("anna", "fatal trials", "medical personnel", "go see what"),
+            advice = GameAdvice(
+                type = AdviceType.MISSION_TACTICAL,
+                title = "Misión: Fatal Trials - Hablar con Anna",
+                objective = "Hablar con Anna (Personal Médico) frente a la camilla para recibir auxilio y avanzar la historia de evacuación.",
+                whereToGo = "Frente a ti en la carretera (indicador dorado de 1 metro).",
+                whatToSearchAndBring = "Busca a Anna (paramédica de uniforme blanco y chaqueta clara junto a la camilla). No necesitas armas desenfundadas.",
+                stepByStep = "1. Acércate a 1 metro de Anna.\n2. Toca el botón naranja 'Talk' (Hablar) que aparece a la derecha de la pantalla.\n3. Avanza en el diálogo para recibir suministros médicos iniciales.",
+                proTip = "Completar Fatal Trials te desbloqueará tu primera mochila de supervivencia y equipo de combate.",
+                spokenSummary = "Misión activa: Habla con Anna. Acércate a la paramédica frente a la camilla y toca el botón naranja Talk a la derecha para continuar."
+            )
+        ),
         // Survival Manual específico
         AdviceEntry(
             keywords = listOf("survival manual chapter", "claim survival manual"),
