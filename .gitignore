@@ -16,4 +16,6 @@ local.properties
 app/build/
 dist/
 dist_*/
+*.zip
+screen_*.png
 imagenes juego/screen_*.png
