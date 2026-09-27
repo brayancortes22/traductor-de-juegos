@@ -60,7 +60,6 @@ class ScreenCaptureService : Service() {
 
         initDisplayMetrics()
         setupNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
 
         bubbleManager = FloatingBubbleManager(
             context = this,
@@ -78,7 +77,30 @@ class ScreenCaptureService : Service() {
         if (resultCode != 0 && resultData != null && mediaProjection == null) {
             val projectionManager =
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            mediaProjection = projectionManager.getMediaProjection(resultCode, resultData)
+            val projection = projectionManager.getMediaProjection(resultCode, resultData)
+            mediaProjection = projection
+
+            // Requisito estricto en Android 14 (API 34): registrar Callback antes de createVirtualDisplay
+            projection.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    virtualDisplay?.release()
+                    virtualDisplay = null
+                    mediaProjection = null
+                }
+            }, android.os.Handler(android.os.Looper.getMainLooper()))
+
+            // Requisito estricto en Android 14: especificar tipo mediaProjection en startForeground
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                androidx.core.app.ServiceCompat.startForeground(
+                    this,
+                    NOTIFICATION_ID,
+                    buildNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            }
+
             setupVirtualDisplay()
         }
 
@@ -104,7 +126,7 @@ class ScreenCaptureService : Service() {
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             imageReader?.surface,
             null,
-            null
+            android.os.Handler(android.os.Looper.getMainLooper())
         )
     }
 
