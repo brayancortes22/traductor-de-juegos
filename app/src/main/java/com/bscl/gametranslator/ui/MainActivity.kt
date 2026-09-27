@@ -1,0 +1,182 @@
+package com.bscl.gametranslator.ui
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.media.projection.MediaProjectionManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.bscl.gametranslator.R
+import com.bscl.gametranslator.data.PreferencesManager
+import com.bscl.gametranslator.databinding.ActivityMainBinding
+import com.bscl.gametranslator.ml.TranslatorEngine
+import com.bscl.gametranslator.service.ScreenCaptureService
+import kotlinx.coroutines.launch
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var preferencesManager: PreferencesManager
+    private val translatorEngine = TranslatorEngine()
+    private var isServiceRunning = false
+
+    private val overlayPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updatePermissionStatus()
+    }
+
+    private val mediaProjectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            startCaptureService(result.resultCode, result.data!!)
+        } else {
+            Toast.makeText(this, "Permiso de captura cancelado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        preferencesManager = PreferencesManager(this)
+
+        setupListeners()
+        updatePermissionStatus()
+        checkOfflineModel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updatePermissionStatus()
+    }
+
+    private fun setupListeners() {
+        binding.btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        binding.btnPermissionOverlay.setOnClickListener {
+            requestOverlayPermission()
+        }
+
+        binding.btnDownloadModel.setOnClickListener {
+            downloadOfflineModel()
+        }
+
+        binding.btnToggleService.setOnClickListener {
+            if (isServiceRunning) {
+                stopCaptureService()
+            } else {
+                initiateServiceStart()
+            }
+        }
+    }
+
+    private fun updatePermissionStatus() {
+        val hasOverlay = Settings.canDrawOverlays(this)
+        if (hasOverlay) {
+            binding.tvOverlayStatus.setText(R.string.status_permission_granted)
+            binding.btnPermissionOverlay.visibility = View.GONE
+        } else {
+            binding.tvOverlayStatus.setText(R.string.status_permission_needed)
+            binding.btnPermissionOverlay.visibility = View.VISIBLE
+        }
+    }
+
+    private fun requestOverlayPermission() {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        overlayPermissionLauncher.launch(intent)
+    }
+
+    private fun checkOfflineModel() {
+        val config = preferencesManager.loadConfig()
+        lifecycleScope.launch {
+            val ready = translatorEngine.ensureModelDownloaded(
+                config.sourceLanguage,
+                config.targetLanguage
+            )
+            if (ready) {
+                binding.tvModelStatus.setText(R.string.status_model_ready)
+                binding.btnDownloadModel.visibility = View.GONE
+            } else {
+                binding.tvModelStatus.setText(R.string.status_model_not_ready)
+                binding.btnDownloadModel.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun downloadOfflineModel() {
+        val config = preferencesManager.loadConfig()
+        binding.pbDownloadModel.visibility = View.VISIBLE
+        binding.tvModelStatus.setText(R.string.status_model_downloading)
+
+        lifecycleScope.launch {
+            val success = translatorEngine.ensureModelDownloaded(
+                config.sourceLanguage,
+                config.targetLanguage,
+                requireWifi = false
+            )
+            binding.pbDownloadModel.visibility = View.GONE
+            if (success) {
+                binding.tvModelStatus.setText(R.string.status_model_ready)
+                binding.btnDownloadModel.visibility = View.GONE
+                Toast.makeText(this@MainActivity, "Modelo descargado con éxito", Toast.LENGTH_SHORT).show()
+            } else {
+                binding.tvModelStatus.setText(R.string.status_model_not_ready)
+                Toast.makeText(this@MainActivity, "Error al descargar modelo", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun initiateServiceStart() {
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Concede el permiso de superposición primero", Toast.LENGTH_SHORT).show()
+            requestOverlayPermission()
+            return
+        }
+
+        val projectionManager =
+            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        mediaProjectionLauncher.launch(projectionManager.createScreenCaptureIntent())
+    }
+
+    private fun startCaptureService(resultCode: Int, data: Intent) {
+        val serviceIntent = Intent(this, ScreenCaptureService::class.java).apply {
+            putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, resultCode)
+            putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, data)
+        }
+
+        ContextCompat.startForegroundService(this, serviceIntent)
+        isServiceRunning = true
+        binding.btnToggleService.setText(R.string.btn_stop_service)
+        binding.btnToggleService.setBackgroundColor(getColor(R.color.accent_red))
+        Toast.makeText(this, "¡Servicio activo! Abre LifeAfter", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopCaptureService() {
+        val serviceIntent = Intent(this, ScreenCaptureService::class.java)
+        stopService(serviceIntent)
+        isServiceRunning = false
+        binding.btnToggleService.setText(R.string.btn_start_service)
+        binding.btnToggleService.setBackgroundColor(getColor(R.color.primary))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        translatorEngine.close()
+    }
+}

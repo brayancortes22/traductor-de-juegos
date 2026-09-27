@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Traductor de Juegos</string>
+    <string name="service_notification_title">Traductor de Juegos Activo</string>
+    <string name="service_notification_desc">Toca la burbuja flotante para traducir textos en pantalla</string>
+    <string name="btn_start_service">Iniciar Servicio Flotante</string>
+    <string name="btn_stop_service">Detener Servicio</string>
+    <string name="btn_grant_overlay">Conceder Permiso de Superposición</string>
+    <string name="btn_download_model">Descargar Modelo Offline</string>
+    <string name="status_permission_granted">Permiso de superposición: Concedido ✅</string>
+    <string name="status_permission_needed">Permiso de superposición: Requerido ⚠️</string>
+    <string name="status_model_ready">Modelo Offline (Inglés - Español): Listo ✅</string>
+    <string name="status_model_downloading">Descargando modelo offline (~30 MB)…</string>
+    <string name="status_model_not_ready">Modelo Offline: No descargado</string>
+    <string name="dialog_result_title">Traducción</string>
+    <string name="btn_copy">Copiar</string>
+    <string name="btn_close">Cerrar</string>
+    <string name="copied_to_clipboard">Texto traducido copiado al portapapeles</string>
+    <string name="no_text_detected">No se detectó ningún texto en el área seleccionada.</string>
+    <string name="translating_wait">Detectando y traduciendo…</string>
+    <string name="crop_instruction">Arrastra tu dedo para seleccionar el texto del juego</string>
+    <string name="title_settings">Configuración del Traductor</string>
+    <string name="pref_source_lang">Idioma de Origen (Juego)</string>
+    <string name="pref_target_lang">Idioma de Destino (Traducción)</string>
+    <string name="pref_bubble_opacity">Opacidad de la Burbuja</string>
+    <string name="pref_auto_copy">Copiar al portapapeles automáticamente</string>
+</resources>
