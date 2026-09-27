@@ -65,6 +65,65 @@ class AiGameAssistantEngine {
         generateHeuristicAdvice(ocrText)
     }
 
+    suspend fun explainScreenElements(
+        ocrText: String,
+        apiKey: String? = null,
+        blocks: List<DetectedTextBlock> = emptyList(),
+        screenWidth: Int = 1340,
+        screenHeight: Int = 800,
+        translatorEngine: TranslatorEngine? = null
+    ): GameAdvice = withContext(Dispatchers.IO) {
+        // 1. Prioridad: Base de datos de habilidades y talentos de combate, fuerza y crafteo
+        val skillAdvice = skillDatabase.findSkillAdvice(ocrText)
+        if (skillAdvice != null) {
+            return@withContext skillAdvice
+        }
+
+        // 2. Base de datos de ítems, fórmulas y mesas de trabajo
+        val offlineAdvice = knowledgeBase.findAdvice(ocrText)
+        if (offlineAdvice != null) {
+            return@withContext offlineAdvice
+        }
+
+        // 3. Consulta online con prompt enfocado exclusivamente en "¿Qué es y para qué sirve?"
+        if (!apiKey.isNullOrBlank()) {
+            try {
+                val onlineResult = queryGeminiAssistant(ocrText, apiKey)
+                if (onlineResult != null) {
+                    return@withContext onlineResult
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        // 4. Heurística especializada en explicación de ítems / habilidades
+        generateItemOrSkillHeuristic(ocrText, translatorEngine)
+    }
+
+    private suspend fun generateItemOrSkillHeuristic(
+        ocrText: String,
+        translatorEngine: TranslatorEngine?
+    ): GameAdvice {
+        val lines = ocrText.lines().map { it.trim() }.filter { it.length > 3 }
+        val firstMeaningful = lines.firstOrNull() ?: "Elemento de Juego"
+        val translatedTitle = translatorEngine?.translateText(
+            firstMeaningful,
+            SupportedLanguage.ENGLISH,
+            SupportedLanguage.SPANISH
+        )?.ifBlank { firstMeaningful } ?: firstMeaningful
+
+        return GameAdvice(
+            type = AdviceType.SKILL_TALENT,
+            title = translatedTitle,
+            objective = "Elemento o Habilidad detectada: $translatedTitle. Sirve para mejorar tus atributos de supervivencia, daño de combate o velocidad de crafteo.",
+            whereToGo = "Menú de Personaje > Skills, Mochila o Banco de Fórmulas en pantalla.",
+            whatToSearchAndBring = "Verifica los puntos de habilidad, New Dollars o materiales requeridos listados en pantalla.",
+            stepByStep = "1. Selecciona el elemento en la interfaz del juego.\n2. Revisa las estadísticas o requisitos de nivel.\n3. Presiona el botón de mejora o crafteo para activarlo.",
+            proTip = "Prioriza subir primero habilidades pasivas que beneficien tu estilo de combate principal (armas ligeras o reducción de daño).",
+            spokenSummary = "Elemento en pantalla: $translatedTitle. Sirve para potenciar tus atributos de combate o supervivencia. Revisa sus requisitos para desbloquearlo."
+        )
+    }
+
     private suspend fun buildMissionAdvice(
         mission: ParsedMission,
         translatorEngine: TranslatorEngine?

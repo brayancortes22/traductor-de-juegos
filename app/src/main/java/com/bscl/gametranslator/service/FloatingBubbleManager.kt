@@ -23,6 +23,7 @@ class FloatingBubbleManager(
     private val onSelectMode: (TranslationMode) -> Unit,
     private val onToggleRealTime: () -> Boolean,
     private val onAskAssistant: () -> Unit,
+    private val onExplainScreen: () -> Unit,
     private val onToggleVoice: () -> Boolean,
     private val onToggleFilter: () -> Boolean
 ) {
@@ -167,6 +168,10 @@ class FloatingBubbleManager(
         view.findViewById<View>(R.id.btn_mode_copilot).setOnClickListener {
             hideMenu()
             onAskAssistant()
+        }
+        view.findViewById<View>(R.id.btn_explain_screen).setOnClickListener {
+            hideMenu()
+            onExplainScreen()
         }
         view.findViewById<View>(R.id.btn_mode_realtime).setOnClickListener {
             val isActive = onToggleRealTime()

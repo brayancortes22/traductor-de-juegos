@@ -82,6 +82,10 @@ class ScreenCaptureService : Service() {
     private var dialogueTrackingJob: Job? = null
     private var lastDialogueHash = 0L
 
+    private var autoDialogueJob: Job? = null
+    private var lastObservedDialogueHash = 0L
+    private var emptyDialogueCycles = 0
+
     override fun onCreate() {
         super.onCreate()
         CrashLogger.init(applicationContext)
@@ -107,6 +111,7 @@ class ScreenCaptureService : Service() {
             onSelectMode = { mode -> executeMode(mode) },
             onToggleRealTime = { toggleRealTimeMode() },
             onAskAssistant = { triggerAssistantAnalysis() },
+            onExplainScreen = { triggerScreenExplanation() },
             onToggleVoice = { toggleVoiceMode() },
             onToggleFilter = { toggleFilterMode() }
         )
@@ -172,6 +177,7 @@ class ScreenCaptureService : Service() {
             null,
             Handler(Looper.getMainLooper())
         )
+        startAutoDialogueWatcher()
     }
 
     private fun executeMode(mode: TranslationMode) {
@@ -268,6 +274,41 @@ class ScreenCaptureService : Service() {
         }
     }
 
+    private fun triggerScreenExplanation() {
+        serviceScope.launch(Dispatchers.Default) {
+            val bitmap = captureBitmapRegion(null) ?: return@launch
+            val rawBlocks = ocrEngine.recognizeText(bitmap)
+            bitmap.recycle()
+
+            val cleanBlocks = textFilter.filterBlocks(rawBlocks, screenWidth, screenHeight, suppressBottomChat = true)
+            val cleanText = textFilter.extractCleanFullText(cleanBlocks, screenWidth, screenHeight)
+
+            if (cleanText.isBlank() && cleanBlocks.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ScreenCaptureService, "No se detectaron elementos para explicar en pantalla", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            val config = preferencesManager.loadConfig()
+            val advice = assistantEngine.explainScreenElements(
+                ocrText = cleanText,
+                apiKey = config.geminiApiKey,
+                blocks = cleanBlocks,
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                translatorEngine = translatorEngine
+            )
+
+            withContext(Dispatchers.Main) {
+                assistantDialogManager.showAdvice(advice)
+                if (config.enableVoiceAssistant) {
+                    voiceNarrator.speak(advice.spokenSummary, isPriority = true)
+                }
+            }
+        }
+    }
+
     private fun startRealTimeAutoScan() {
         realTimeJob?.cancel()
         realTimeJob = serviceScope.launch(Dispatchers.Default) {
@@ -280,7 +321,7 @@ class ScreenCaptureService : Service() {
 
                     if (diff > 4) {
                         lastFrameHash = currentHash
-                        processBitmapAndTranslate(bitmap, isAuto = true, offsetRect = rect)
+                        processBitmapAndTranslate(bitmap, isAuto = true, offsetRect = rect, isClickThrough = true)
                     } else {
                         bitmap.recycle()
                     }
@@ -361,7 +402,7 @@ class ScreenCaptureService : Service() {
         bitmap.recycle()
 
         val blocks = if (config.filterIrrelevantElements) {
-            textFilter.filterBlocks(rawBlocks)
+            textFilter.filterBlocks(rawBlocks, screenWidth, screenHeight, suppressBottomChat = true)
         } else {
             rawBlocks
         }
@@ -486,6 +527,85 @@ class ScreenCaptureService : Service() {
         overlay.attach()
     }
 
+    /**
+     * Observador inteligente en segundo plano:
+     * Detecta automáticamente cuando un NPC empieza a hablar en la zona de subtítulos,
+     * activa los subtítulos pasantes (FLAG_NOT_TOUCHABLE), y cuando el diálogo termina,
+     * se desvanece por sí sola sin requerir ninguna acción del usuario.
+     */
+    private fun startAutoDialogueWatcher() {
+        autoDialogueJob?.cancel()
+        autoDialogueJob = serviceScope.launch(Dispatchers.Default) {
+            val dialogueRect = TranslationMode.LIFEAFTER_CHAT.getBoundingRect(screenWidth, screenHeight)
+
+            while (isActive) {
+                delay(850)
+                // Solo vigilar si el usuario no está en modo recorte manual y no hay diálogo manual activo
+                if (currentMode != TranslationMode.PARTIAL_CROP && !isDialogueActive && !isRealTimeActive) {
+                    val frame = captureBitmapRegion(dialogueRect) ?: continue
+                    val currentHash = ImageHashUtil.computeDHash(frame)
+                    val rawBlocks = ocrEngine.recognizeText(frame)
+                    frame.recycle()
+
+                    val validBlocks = rawBlocks.filter {
+                        it.originalText.trim().length >= 3 &&
+                                !textFilter.isIrrelevant(it.originalText) &&
+                                !textFilter.isBottomWorldChat(it, screenWidth, screenHeight)
+                    }
+
+                    if (validBlocks.isNotEmpty()) {
+                        emptyDialogueCycles = 0
+                        val diff = ImageHashUtil.hammingDistance(lastObservedDialogueHash, currentHash)
+                        if (diff > 3 || currentInPlaceOverlay == null) {
+                            lastObservedDialogueHash = currentHash
+                            val config = preferencesManager.loadConfig()
+                            val translatedBlocks = validBlocks.map { block ->
+                                var trans = translatorEngine.translateText(
+                                    block.originalText,
+                                    config.sourceLanguage,
+                                    config.targetLanguage
+                                )
+                                if (config.enableAiMaxGlossary) trans = gameGlossary.applyGlossary(trans)
+                                val adjustedRect = if (dialogueRect != null && block.boundingBox != null) {
+                                    Rect(
+                                        block.boundingBox.left + dialogueRect.left,
+                                        block.boundingBox.top + dialogueRect.top,
+                                        block.boundingBox.right + dialogueRect.left,
+                                        block.boundingBox.bottom + dialogueRect.top
+                                    )
+                                } else {
+                                    block.boundingBox
+                                }
+                                block.copy(boundingBox = adjustedRect, translatedText = trans)
+                            }
+                            withContext(Dispatchers.Main) {
+                                val currentOverlay = currentInPlaceOverlay
+                                if (currentOverlay != null && currentOverlay.isAttachedToWindow) {
+                                    currentOverlay.updateBlocks(translatedBlocks)
+                                } else {
+                                    showInPlaceOverlay(translatedBlocks, isClickThrough = true)
+                                }
+                            }
+                        }
+                    } else {
+                        // Si no hay diálogo durante 2 ciclos seguidos (~1.7s), auto-cerrar overlay
+                        if (currentInPlaceOverlay != null) {
+                            emptyDialogueCycles++
+                            if (emptyDialogueCycles >= 2) {
+                                emptyDialogueCycles = 0
+                                lastObservedDialogueHash = 0L
+                                withContext(Dispatchers.Main) {
+                                    currentInPlaceOverlay?.detach()
+                                    currentInPlaceOverlay = null
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun setupNotificationChannel() {
         val channel = NotificationChannel(CHANNEL_ID, "Traductor de Juegos", NotificationManager.IMPORTANCE_LOW)
         val manager = getSystemService(NotificationManager::class.java)
@@ -506,6 +626,7 @@ class ScreenCaptureService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopDialogueTracking()
+        autoDialogueJob?.cancel()
         isRealTimeActive = false
         realTimeJob?.cancel()
         voiceNarrator.shutdown()

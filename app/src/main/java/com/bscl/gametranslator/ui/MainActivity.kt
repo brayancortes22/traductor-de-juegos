@@ -135,6 +135,8 @@ class MainActivity : AppCompatActivity() {
         overlayPermissionLauncher.launch(intent)
     }
 
+    private var isDownloadingOfflineModel = false
+
     private fun checkOfflineModel() {
         val config = preferencesManager.loadConfig()
         lifecycleScope.launch {
@@ -142,9 +144,38 @@ class MainActivity : AppCompatActivity() {
             if (isDownloaded) {
                 binding.tvModelStatus.setText(R.string.status_model_ready)
                 binding.btnDownloadModel.setText(R.string.btn_verify_model)
+                binding.pbDownloadModel.visibility = View.GONE
             } else {
-                binding.tvModelStatus.setText(R.string.status_model_not_ready)
                 binding.btnDownloadModel.setText(R.string.btn_download_model_optional)
+                startBackgroundModelDownload()
+            }
+        }
+    }
+
+    private fun startBackgroundModelDownload() {
+        if (isDownloadingOfflineModel) return
+        isDownloadingOfflineModel = true
+        val config = preferencesManager.loadConfig()
+
+        binding.pbDownloadModel.visibility = View.VISIBLE
+        binding.tvModelStatus.text = "⬇️ Descargando paquete offline en segundo plano (traducción online activa)..."
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val success = translatorEngine.ensureModelDownloaded(
+                config.sourceLanguage,
+                config.targetLanguage,
+                requireWifi = false
+            )
+            withContext(Dispatchers.Main) {
+                isDownloadingOfflineModel = false
+                binding.pbDownloadModel.visibility = View.GONE
+                if (success) {
+                    binding.tvModelStatus.setText(R.string.status_model_ready)
+                    binding.btnDownloadModel.setText(R.string.btn_verify_model)
+                    Toast.makeText(this@MainActivity, "✅ Paquete offline listo. Ya puedes traducir sin internet.", Toast.LENGTH_SHORT).show()
+                } else {
+                    binding.tvModelStatus.setText(R.string.status_model_not_ready)
+                }
             }
         }
     }
@@ -154,46 +185,12 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val alreadyDownloaded = translatorEngine.isModelDownloaded(config.targetLanguage)
             if (alreadyDownloaded) {
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(R.string.download_success_title)
-                    .setMessage(R.string.model_already_downloaded)
-                    .setPositiveButton("Aceptar", null)
-                    .show()
+                Toast.makeText(this@MainActivity, "✅ El modelo offline ya está instalado y listo para usar.", Toast.LENGTH_SHORT).show()
                 binding.tvModelStatus.setText(R.string.status_model_ready)
                 binding.btnDownloadModel.setText(R.string.btn_verify_model)
-                return@launch
-            }
-
-            val dialogView = layoutInflater.inflate(R.layout.dialog_downloading_model, null)
-            val loadingDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
-                .setView(dialogView)
-                .setCancelable(false)
-                .setNegativeButton("Cancelar") { d, _ -> d.dismiss() }
-                .create()
-            loadingDialog.show()
-
-            binding.pbDownloadModel.visibility = View.VISIBLE
-            binding.tvModelStatus.setText(R.string.status_model_downloading)
-
-            val success = translatorEngine.ensureModelDownloaded(
-                config.sourceLanguage,
-                config.targetLanguage,
-                requireWifi = false
-            )
-            binding.pbDownloadModel.visibility = View.GONE
-            loadingDialog.dismiss()
-
-            if (success) {
-                binding.tvModelStatus.setText(R.string.status_model_ready)
-                binding.btnDownloadModel.setText(R.string.btn_verify_model)
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(R.string.download_success_title)
-                    .setMessage(R.string.download_success_desc)
-                    .setPositiveButton("Aceptar", null)
-                    .show()
             } else {
-                binding.tvModelStatus.setText(R.string.status_model_not_ready)
-                Toast.makeText(this@MainActivity, "Error al descargar modelo. Revisa tu conexión a internet.", Toast.LENGTH_LONG).show()
+                startBackgroundModelDownload()
+                Toast.makeText(this@MainActivity, "Descargando modelo de Google ML Kit en segundo plano...", Toast.LENGTH_SHORT).show()
             }
         }
     }
