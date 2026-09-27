@@ -8,9 +8,14 @@
     <string name="btn_download_model">Descargar Modelo Offline</string>
     <string name="status_permission_granted">Permiso de superposición: Concedido ✅</string>
     <string name="status_permission_needed">Permiso de superposición: Requerido ⚠️</string>
-    <string name="status_model_ready">Modelo Offline (Inglés - Español): Listo ✅</string>
-    <string name="status_model_downloading">Descargando modelo offline (~30 MB)…</string>
-    <string name="status_model_not_ready">Modelo Offline: No descargado</string>
+    <string name="status_model_ready">Modelo Offline (Inglés - Español): Instalado (100%) ✅</string>
+    <string name="status_model_downloading">Descargando modelo offline de Google ML Kit (~30 MB)…</string>
+    <string name="status_model_not_ready">Modelo Offline: No instalado aún</string>
+    <string name="btn_verify_model">Comprobar / Reinstalar Paquete Offline</string>
+    <string name="download_dialog_title">Descarga de Paquete Offline</string>
+    <string name="download_dialog_desc">Descargando modelo de traducción de Google ML Kit (~30 MB). Una vez listo, podrás traducir LifeAfter 100% offline y sin gastar datos móviles.</string>
+    <string name="download_success_title">¡Descarga Completada al 100%!</string>
+    <string name="download_success_desc">El paquete de traducción inglés-español quedó guardado localmente en tu tablet. Ya puedes usarlo sin internet.</string>
     <string name="dialog_result_title">Traducción</string>
     <string name="btn_copy">Copiar</string>
     <string name="btn_close">Cerrar</string>

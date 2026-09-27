@@ -27,7 +27,13 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
-            isDebuggable = true
+            isDebuggable = false
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 

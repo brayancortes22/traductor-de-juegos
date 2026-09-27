@@ -111,16 +111,23 @@ class MainActivity : AppCompatActivity() {
             )
             if (ready) {
                 binding.tvModelStatus.setText(R.string.status_model_ready)
-                binding.btnDownloadModel.visibility = View.GONE
+                binding.btnDownloadModel.setText(R.string.btn_verify_model)
             } else {
                 binding.tvModelStatus.setText(R.string.status_model_not_ready)
-                binding.btnDownloadModel.visibility = View.VISIBLE
+                binding.btnDownloadModel.setText(R.string.btn_download_model)
             }
         }
     }
 
     private fun downloadOfflineModel() {
         val config = preferencesManager.loadConfig()
+        val loadingDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.download_dialog_title)
+            .setMessage(R.string.download_dialog_desc)
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+
         binding.pbDownloadModel.visibility = View.VISIBLE
         binding.tvModelStatus.setText(R.string.status_model_downloading)
 
@@ -131,13 +138,19 @@ class MainActivity : AppCompatActivity() {
                 requireWifi = false
             )
             binding.pbDownloadModel.visibility = View.GONE
+            loadingDialog.dismiss()
+
             if (success) {
                 binding.tvModelStatus.setText(R.string.status_model_ready)
-                binding.btnDownloadModel.visibility = View.GONE
-                Toast.makeText(this@MainActivity, "Modelo descargado con éxito", Toast.LENGTH_SHORT).show()
+                binding.btnDownloadModel.setText(R.string.btn_verify_model)
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(R.string.download_success_title)
+                    .setMessage(R.string.download_success_desc)
+                    .setPositiveButton("Aceptar", null)
+                    .show()
             } else {
                 binding.tvModelStatus.setText(R.string.status_model_not_ready)
-                Toast.makeText(this@MainActivity, "Error al descargar modelo", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Error al descargar modelo. Revisa tu conexión a internet.", Toast.LENGTH_LONG).show()
             }
         }
     }
