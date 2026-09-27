@@ -16,6 +16,7 @@
     <color name="text_secondary">#8B949E</color>
     <color name="border_cyan">#2E4D6E</color>
     <color name="accent_green">#00E676</color>
+    <color name="accent_cyan">#00E5FF</color>
     <color name="accent_red">#FF5252</color>
     <color name="crop_selection_border">#00E5FF</color>
     <color name="crop_selection_fill">#3300E5FF</color>

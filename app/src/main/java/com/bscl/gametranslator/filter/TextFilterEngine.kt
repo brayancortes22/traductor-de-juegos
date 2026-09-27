@@ -1,6 +1,6 @@
 package com.bscl.gametranslator.filter
 
-import com.bscl.gametranslator.model.TextBlockData
+import com.bscl.gametranslator.model.DetectedTextBlock
 
 class TextFilterEngine {
 
@@ -21,13 +21,13 @@ class TextFilterEngine {
         return false
     }
 
-    fun filterBlocks(blocks: List<TextBlockData>): List<TextBlockData> {
+    fun filterBlocks(blocks: List<DetectedTextBlock>): List<DetectedTextBlock> {
         return blocks.filter { block ->
             !isIrrelevant(block.originalText)
         }
     }
 
-    fun extractCleanFullText(blocks: List<TextBlockData>): String {
+    fun extractCleanFullText(blocks: List<DetectedTextBlock>): String {
         return filterBlocks(blocks)
             .map { it.originalText.trim() }
             .filter { it.isNotEmpty() }

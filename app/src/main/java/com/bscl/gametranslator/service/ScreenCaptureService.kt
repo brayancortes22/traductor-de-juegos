@@ -34,7 +34,6 @@ import com.bscl.gametranslator.ml.TranslatorEngine
 import com.bscl.gametranslator.model.TranslationMode
 import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
-import com.bscl.gametranslator.ui.SnipOverlayView
 import com.bscl.gametranslator.util.ImageHashUtil
 import com.bscl.gametranslator.voice.VoiceNarratorEngine
 import kotlinx.coroutines.CoroutineScope
