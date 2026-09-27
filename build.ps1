@@ -1,8 +1,8 @@
-# Script de automatización para Traductor de Juegos (Android)
-# Autor: Brayan Stid Cortés Lombana (bscl)
+# Script de automatizacion para Traductor de Juegos (Android)
+# Autor: Brayan Stid Cortes Lombana (bscl)
 
 Write-Host "=============================================" -ForegroundColor Cyan
-Write-Host "  🎮 Traductor de Juegos — Build & Deploy" -ForegroundColor Cyan
+Write-Host "  Traductor de Juegos - Build and Deploy" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 
 # 1. Localizar ADB (en PATH o en platform-tools local)
@@ -35,7 +35,7 @@ if ($connectedDevice) {
     Write-Host "    5. Acepta el mensaje en la pantalla de la tablet: 'Permitir siempre'." -ForegroundColor White
 }
 
-# 3. Compilación y APK
+# 3. Compilacion y APK
 $apkPath = "app\build\outputs\apk\debug\app-debug.apk"
 Write-Host "`n[2/3] Verificando estado del APK..." -ForegroundColor Yellow
 if (Test-Path $apkPath) {
@@ -43,10 +43,10 @@ if (Test-Path $apkPath) {
     if ($connectedDevice) {
         Write-Host "`n[3/3] Instalando en tu tablet..." -ForegroundColor Yellow
         & $adb install -r $apkPath
-        Write-Host ">>> ¡Instalacion completada! Abre Traductor de Juegos en tu tablet." -ForegroundColor Green
+        Write-Host ">>> Instalacion completada! Abre Traductor de Juegos en tu tablet." -ForegroundColor Green
     }
 } else {
     Write-Host "Para compilar el APK:" -ForegroundColor Yellow
     Write-Host "1. Abre la carpeta del proyecto en Android Studio." -ForegroundColor White
-    Write-Host "2. Presiona Shift + F10 o ve a Build -> Build APK(s)." -ForegroundColor White
+    Write-Host "2. Presiona Shift + F10 o ve al menu Build -> Build APK(s)." -ForegroundColor White
 }
