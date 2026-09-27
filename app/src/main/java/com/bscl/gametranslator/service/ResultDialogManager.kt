@@ -13,18 +13,20 @@ import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.view.ContextThemeWrapper
 import com.bscl.gametranslator.R
 import com.bscl.gametranslator.model.TranslationResult
 
 class ResultDialogManager(private val context: Context) {
 
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_GameTranslator)
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var dialogView: View? = null
 
     @SuppressLint("InflateParams")
     fun showLoading() {
         dismiss()
-        val inflater = LayoutInflater.from(context)
+        val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.view_result_card, null)
         dialogView = view
 

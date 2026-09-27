@@ -37,7 +37,7 @@
             android:id="@+id/btn_card_copy"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_menu_item"
             android:src="@drawable/ic_copy"
             android:contentDescription="@string/btn_copy" />
 
@@ -45,7 +45,7 @@
             android:id="@+id/btn_card_close"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_menu_item"
             android:src="@drawable/ic_close"
             android:contentDescription="@string/btn_close" />
     </LinearLayout>

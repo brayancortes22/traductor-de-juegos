@@ -10,6 +10,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.view.ContextThemeWrapper
 import com.bscl.gametranslator.R
 import com.bscl.gametranslator.assistant.GameAdvice
 
@@ -18,6 +19,7 @@ class AssistantDialogManager(
     private val onSpeakRequested: (String) -> Unit
 ) {
 
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_GameTranslator)
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var dialogView: View? = null
 
@@ -25,7 +27,7 @@ class AssistantDialogManager(
     fun showAdvice(advice: GameAdvice) {
         dismiss()
 
-        val inflater = LayoutInflater.from(context)
+        val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.view_assistant_dialog, null)
         dialogView = view
 

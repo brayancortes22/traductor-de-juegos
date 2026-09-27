@@ -34,6 +34,7 @@ import com.bscl.gametranslator.ml.TranslatorEngine
 import com.bscl.gametranslator.model.TranslationMode
 import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
+import com.bscl.gametranslator.util.CrashLogger
 import com.bscl.gametranslator.util.ImageHashUtil
 import com.bscl.gametranslator.voice.VoiceNarratorEngine
 import kotlinx.coroutines.CoroutineScope
@@ -75,6 +76,7 @@ class ScreenCaptureService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLogger.init(applicationContext)
         preferencesManager = PreferencesManager(this)
         ocrEngine = OcrEngine()
         translatorEngine = TranslatorEngine()

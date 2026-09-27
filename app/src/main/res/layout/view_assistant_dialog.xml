@@ -35,7 +35,7 @@
                 android:layout_width="28dp"
                 android:layout_height="28dp"
                 android:layout_alignParentEnd="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/bg_menu_item"
                 android:contentDescription="Cerrar"
                 android:src="@drawable/ic_close"
                 app:tint="#90A4AE" />

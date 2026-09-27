@@ -19,6 +19,7 @@ class TranslatorEngine {
     private var currentSource: SupportedLanguage? = null
     private var currentTarget: SupportedLanguage? = null
     private val languageIdentifier = LanguageIdentifierEngine()
+    private val onlineTranslator = OnlineTranslatorEngine()
 
     private fun getOrCreateTranslator(
         source: SupportedLanguage,
@@ -103,16 +104,35 @@ class TranslatorEngine {
             return cached
         }
 
-        return suspendCancellableCoroutine { continuation ->
-            val translator = getOrCreateTranslator(effectiveSource, target)
-            translator.translate(trimmed)
-                .addOnSuccessListener { translated ->
-                    translationCache.put(cacheKey, translated)
-                    continuation.resume(translated)
+        // Si el modelo offline está instalado, usarlo preferentemente
+        val isTargetOffline = isModelDownloaded(target)
+        val isSourceOffline = if (effectiveSource == SupportedLanguage.ENGLISH) true else isModelDownloaded(effectiveSource)
+
+        if (isTargetOffline && isSourceOffline) {
+            try {
+                return suspendCancellableCoroutine { continuation ->
+                    val translator = getOrCreateTranslator(effectiveSource, target)
+                    translator.translate(trimmed)
+                        .addOnSuccessListener { translated ->
+                            translationCache.put(cacheKey, translated)
+                            continuation.resume(translated)
+                        }
+                        .addOnFailureListener { ex ->
+                            continuation.resumeWithException(ex)
+                        }
                 }
-                .addOnFailureListener { ex ->
-                    continuation.resumeWithException(ex)
-                }
+            } catch (_: Exception) {
+                // Fallback automático al traductor online
+            }
+        }
+
+        // Si no está descargado el offline, traducir inmediatamente Online
+        return try {
+            val onlineResult = onlineTranslator.translateOnline(trimmed, effectiveSource, target)
+            translationCache.put(cacheKey, onlineResult)
+            onlineResult
+        } catch (_: Exception) {
+            trimmed
         }
     }
 

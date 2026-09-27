@@ -19,6 +19,9 @@ import com.bscl.gametranslator.data.PreferencesManager
 import com.bscl.gametranslator.databinding.ActivityMainBinding
 import com.bscl.gametranslator.ml.TranslatorEngine
 import com.bscl.gametranslator.service.ScreenCaptureService
+import com.bscl.gametranslator.util.CrashLogger
+import android.content.ClipData
+import android.content.ClipboardManager
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -46,6 +49,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashLogger.init(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -74,6 +78,10 @@ class MainActivity : AppCompatActivity() {
             downloadOfflineModel()
         }
 
+        binding.btnViewLogs.setOnClickListener {
+            showLogsDialog()
+        }
+
         binding.btnToggleService.setOnClickListener {
             if (isServiceRunning) {
                 stopCaptureService()
@@ -81,6 +89,31 @@ class MainActivity : AppCompatActivity() {
                 initiateServiceStart()
             }
         }
+    }
+
+    private fun showLogsDialog() {
+        val crashLog = CrashLogger.getLastCrash(this)
+        val message = crashLog ?: getString(R.string.logs_empty)
+
+        val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.logs_dialog_title)
+            .setMessage(message)
+            .setPositiveButton("Cerrar", null)
+
+        if (crashLog != null) {
+            builder.setNeutralButton("Copiar Log") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("GameTranslator Crash Log", crashLog)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Log copiado al portapapeles", Toast.LENGTH_SHORT).show()
+            }
+            builder.setNegativeButton("Borrar Log") { _, _ ->
+                CrashLogger.clearCrashLog(this)
+                Toast.makeText(this, "Registro de errores limpiado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        builder.show()
     }
 
     private fun updatePermissionStatus() {
@@ -111,7 +144,7 @@ class MainActivity : AppCompatActivity() {
                 binding.btnDownloadModel.setText(R.string.btn_verify_model)
             } else {
                 binding.tvModelStatus.setText(R.string.status_model_not_ready)
-                binding.btnDownloadModel.setText(R.string.btn_download_model)
+                binding.btnDownloadModel.setText(R.string.btn_download_model_optional)
             }
         }
     }

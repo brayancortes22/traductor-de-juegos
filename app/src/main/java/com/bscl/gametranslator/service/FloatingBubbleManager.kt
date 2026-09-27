@@ -10,6 +10,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import com.bscl.gametranslator.R
 import com.bscl.gametranslator.data.PreferencesManager
@@ -26,6 +27,7 @@ class FloatingBubbleManager(
     private val onToggleFilter: () -> Boolean
 ) {
 
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_GameTranslator)
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var bubbleView: View? = null
     private var menuView: View? = null
@@ -41,7 +43,7 @@ class FloatingBubbleManager(
     fun show() {
         if (bubbleView != null) return
 
-        val inflater = LayoutInflater.from(context)
+        val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.view_floating_bubble, null)
         bubbleView = view
 
@@ -120,7 +122,7 @@ class FloatingBubbleManager(
             return
         }
 
-        val inflater = LayoutInflater.from(context)
+        val inflater = LayoutInflater.from(themedContext)
         val view = inflater.inflate(R.layout.view_floating_menu, null)
         menuView = view
 

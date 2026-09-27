@@ -179,5 +179,17 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_view_logs"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="@string/btn_view_logs"
+            android:textColor="@color/secondary"
+            app:strokeColor="@color/border_cyan"
+            app:cornerRadius="10dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp" />
+
     </LinearLayout>
 </ScrollView>
