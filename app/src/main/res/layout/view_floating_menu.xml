@@ -167,6 +167,8 @@
             android:text="@string/menu_filter_toggle"
             android:textColor="#38BDF8"
             android:textSize="12sp" />
+    </LinearLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -193,7 +195,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="🛑 Detener Servicio"
+            android:text="@string/menu_stop_service"
             android:textColor="#EF4444"
             android:textStyle="bold"
             android:textSize="12sp" />

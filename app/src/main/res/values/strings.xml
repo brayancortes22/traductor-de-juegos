@@ -53,4 +53,5 @@
     <string name="filter_enabled_toast">🛡️ Filtro de HUD activado (vida, balas y ping ignorados)</string>
     <string name="filter_disabled_toast">Filtro de HUD desactivado</string>
     <string name="model_already_downloaded">✅ El modelo de traducción ya está 100% instalado localmente.</string>
+    <string name="menu_stop_service">🛑 Detener Servicio</string>
 </resources>
