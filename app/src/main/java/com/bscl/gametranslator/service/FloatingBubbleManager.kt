@@ -22,10 +22,13 @@ class FloatingBubbleManager(
     private val preferencesManager: PreferencesManager,
     private val onSelectMode: (TranslationMode) -> Unit,
     private val onToggleRealTime: () -> Boolean,
+    private val onToggleAutoDialogue: () -> Boolean,
     private val onAskAssistant: () -> Unit,
     private val onExplainScreen: () -> Unit,
     private val onToggleVoice: () -> Boolean,
-    private val onToggleFilter: () -> Boolean
+    private val onToggleFilter: () -> Boolean,
+    private val getRealTimeActive: () -> Boolean,
+    private val getAutoDialogueActive: () -> Boolean
 ) {
 
     private val themedContext = ContextThemeWrapper(context, R.style.Theme_GameTranslator)
@@ -161,10 +164,27 @@ class FloatingBubbleManager(
             hideMenu()
             onSelectMode(TranslationMode.LIFEAFTER_SHOP)
         }
-        view.findViewById<View>(R.id.btn_mode_chat).setOnClickListener {
-            hideMenu()
-            onSelectMode(TranslationMode.LIFEAFTER_CHAT)
+        // Auto-Diálogo Toggle
+        val updateDialogueUi = { active: Boolean ->
+            val tvLabel = view.findViewById<TextView>(R.id.tv_chat_label)
+            val ivIcon = view.findViewById<ImageView>(R.id.iv_chat_indicator)
+            if (active) {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
+                tvLabel.text = "💬 Auto-Diálogo: ACTIVO"
+            } else {
+                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_primary))
+                tvLabel.text = "💬 Auto-Diálogo Inteligente"
+            }
         }
+        updateDialogueUi(getAutoDialogueActive())
+
+        view.findViewById<View>(R.id.btn_mode_chat).setOnClickListener {
+            val isActive = onToggleAutoDialogue()
+            updateDialogueUi(isActive)
+        }
+
         view.findViewById<View>(R.id.btn_mode_copilot).setOnClickListener {
             hideMenu()
             onAskAssistant()
@@ -173,23 +193,34 @@ class FloatingBubbleManager(
             hideMenu()
             onExplainScreen()
         }
-        view.findViewById<View>(R.id.btn_mode_realtime).setOnClickListener {
-            val isActive = onToggleRealTime()
+
+        // Real-Time Toggle
+        val updateRealTimeUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_realtime_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_realtime_indicator)
-            if (isActive) {
+            if (active) {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
+                tvLabel.text = "⚡ Tiempo Real: ACTIVO"
             } else {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
+                tvLabel.text = context.getString(R.string.mode_realtime_toggle)
             }
         }
-        view.findViewById<View>(R.id.btn_toggle_voice).setOnClickListener {
-            val isVoiceActive = onToggleVoice()
+        updateRealTimeUi(getRealTimeActive())
+
+        view.findViewById<View>(R.id.btn_mode_realtime).setOnClickListener {
+            val isActive = onToggleRealTime()
+            updateRealTimeUi(isActive)
+        }
+
+        // Voice Toggle
+        val config = preferencesManager.loadConfig()
+        val updateVoiceUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_voice_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_voice_indicator)
-            if (isVoiceActive) {
+            if (active) {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
             } else {
@@ -197,17 +228,30 @@ class FloatingBubbleManager(
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
             }
         }
-        view.findViewById<View>(R.id.btn_toggle_filter).setOnClickListener {
-            val isFilterActive = onToggleFilter()
+        updateVoiceUi(config.enableVoiceAssistant)
+
+        view.findViewById<View>(R.id.btn_toggle_voice).setOnClickListener {
+            val isVoiceActive = onToggleVoice()
+            updateVoiceUi(isVoiceActive)
+        }
+
+        // Filter Toggle
+        val updateFilterUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_filter_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_filter_indicator)
-            if (isFilterActive) {
+            if (active) {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_cyan))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_cyan))
             } else {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
             }
+        }
+        updateFilterUi(config.filterIrrelevantElements)
+
+        view.findViewById<View>(R.id.btn_toggle_filter).setOnClickListener {
+            val isFilterActive = onToggleFilter()
+            updateFilterUi(isFilterActive)
         }
 
         windowManager.addView(view, menuParams)

@@ -170,6 +170,10 @@ class InPlaceTranslationOverlayView(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        if (renderedBlocks.isEmpty()) {
+            return
+        }
+
         val screenW = width.toFloat()
 
         // Banner informativo en la parte superior

@@ -133,7 +133,7 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Option 5: Chat / Dialogues -->
+    <!-- Option 5: Auto-Dialogue Toggle -->
     <LinearLayout
         android:id="@+id/btn_mode_chat"
         android:layout_width="match_parent"
@@ -144,15 +144,17 @@
         android:background="@drawable/bg_menu_item">
 
         <ImageView
+            android:id="@+id/iv_chat_indicator"
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:src="@drawable/ic_chat" />
 
         <TextView
+            android:id="@+id/tv_chat_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="@string/mode_chat"
+            android:text="💬 Auto-Diálogo Inteligente"
             android:textColor="@color/text_primary"
             android:textSize="13sp" />
     </LinearLayout>

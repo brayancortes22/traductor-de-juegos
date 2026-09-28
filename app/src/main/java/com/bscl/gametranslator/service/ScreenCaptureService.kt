@@ -82,6 +82,7 @@ class ScreenCaptureService : Service() {
     private var dialogueTrackingJob: Job? = null
     private var lastDialogueHash = 0L
 
+    private var isAutoDialogueActive = false
     private var autoDialogueJob: Job? = null
     private var lastObservedDialogueHash = 0L
     private var emptyDialogueCycles = 0
@@ -110,10 +111,13 @@ class ScreenCaptureService : Service() {
             preferencesManager = preferencesManager,
             onSelectMode = { mode -> executeMode(mode) },
             onToggleRealTime = { toggleRealTimeMode() },
+            onToggleAutoDialogue = { toggleAutoDialogue() },
             onAskAssistant = { triggerAssistantAnalysis() },
             onExplainScreen = { triggerScreenExplanation() },
             onToggleVoice = { toggleVoiceMode() },
-            onToggleFilter = { toggleFilterMode() }
+            onToggleFilter = { toggleFilterMode() },
+            getRealTimeActive = { isRealTimeActive },
+            getAutoDialogueActive = { isAutoDialogueActive }
         )
         bubbleManager.show()
     }
@@ -177,7 +181,9 @@ class ScreenCaptureService : Service() {
             null,
             Handler(Looper.getMainLooper())
         )
-        startAutoDialogueWatcher()
+        if (isAutoDialogueActive) {
+            startAutoDialogueWatcher()
+        }
     }
 
     private fun executeMode(mode: TranslationMode) {
@@ -195,12 +201,7 @@ class ScreenCaptureService : Service() {
                 captureAndTranslate(rect)
             }
             TranslationMode.LIFEAFTER_CHAT -> {
-                if (isDialogueActive) {
-                    stopDialogueTracking()
-                    Toast.makeText(this, "Modo Diálogo desactivado", Toast.LENGTH_SHORT).show()
-                } else {
-                    startDialogueTrackingLoop()
-                }
+                toggleAutoDialogue()
             }
         }
     }
@@ -213,8 +214,27 @@ class ScreenCaptureService : Service() {
         } else {
             Toast.makeText(this, R.string.realtime_stopped_toast, Toast.LENGTH_SHORT).show()
             realTimeJob?.cancel()
+            realTimeJob = null
+            currentInPlaceOverlay?.detach()
+            currentInPlaceOverlay = null
         }
         return isRealTimeActive
+    }
+
+    private fun toggleAutoDialogue(): Boolean {
+        isAutoDialogueActive = !isAutoDialogueActive
+        if (isAutoDialogueActive) {
+            Toast.makeText(this, "💬 Auto-Diálogo Activado: traduciendo NPCs en vivo", Toast.LENGTH_SHORT).show()
+            startAutoDialogueWatcher()
+        } else {
+            Toast.makeText(this, "Modo Diálogo desactivado", Toast.LENGTH_SHORT).show()
+            autoDialogueJob?.cancel()
+            autoDialogueJob = null
+            lastObservedDialogueHash = 0L
+            currentInPlaceOverlay?.detach()
+            currentInPlaceOverlay = null
+        }
+        return isAutoDialogueActive
     }
 
     private fun toggleVoiceMode(): Boolean {
@@ -538,10 +558,10 @@ class ScreenCaptureService : Service() {
         autoDialogueJob = serviceScope.launch(Dispatchers.Default) {
             val dialogueRect = TranslationMode.LIFEAFTER_CHAT.getBoundingRect(screenWidth, screenHeight)
 
-            while (isActive) {
+            while (isActive && isAutoDialogueActive) {
                 delay(850)
-                // Solo vigilar si el usuario no está en modo recorte manual y no hay diálogo manual activo
-                if (currentMode != TranslationMode.PARTIAL_CROP && !isDialogueActive && !isRealTimeActive) {
+                // Solo vigilar si el usuario no está en modo recorte manual, no hay diálogo manual activo y el modo automático sigue activo
+                if (currentMode != TranslationMode.PARTIAL_CROP && !isDialogueActive && !isRealTimeActive && isAutoDialogueActive) {
                     val frame = captureBitmapRegion(dialogueRect) ?: continue
                     val currentHash = ImageHashUtil.computeDHash(frame)
                     val rawBlocks = ocrEngine.recognizeText(frame)
@@ -626,9 +646,12 @@ class ScreenCaptureService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopDialogueTracking()
+        isAutoDialogueActive = false
         autoDialogueJob?.cancel()
+        autoDialogueJob = null
         isRealTimeActive = false
         realTimeJob?.cancel()
+        realTimeJob = null
         voiceNarrator.shutdown()
         bubbleManager.hide()
         currentInPlaceOverlay?.detach()
