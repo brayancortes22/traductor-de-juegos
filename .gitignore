@@ -16,10 +16,9 @@ local.properties
 app/build/
 dist/
 dist_*/
+apk_*/
 *.zip
+*.apk
+*.png
 screen_*.png
 imagenes juego/screen_*.png
-
-apk_tactical/
-*.png
-artifact.zip

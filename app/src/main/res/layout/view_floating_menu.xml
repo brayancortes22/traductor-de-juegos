@@ -167,6 +167,36 @@
             android:text="@string/menu_filter_toggle"
             android:textColor="#38BDF8"
             android:textSize="12sp" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_cyan"
+        android:layout_marginVertical="4dp" />
+
+    <!-- Button: Stop Service -->
+    <LinearLayout
+        android:id="@+id/btn_stop_service"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:background="@drawable/bg_menu_item">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_close"
+            app:tint="#EF4444" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="🛑 Detener Servicio"
+            android:textColor="#EF4444"
+            android:textStyle="bold"
+            android:textSize="12sp" />
     </LinearLayout>
 
 </LinearLayout>

@@ -24,6 +24,7 @@ class FloatingBubbleManager(
     private val onToggleRealTime: () -> Boolean,
     private val onToggleAutoDialogue: () -> Boolean,
     private val onToggleFilter: () -> Boolean,
+    private val onStopService: () -> Unit,
     private val getRealTimeActive: () -> Boolean,
     private val getAutoDialogueActive: () -> Boolean
 ) {
@@ -218,6 +219,12 @@ class FloatingBubbleManager(
         view.findViewById<View>(R.id.btn_toggle_filter).setOnClickListener {
             val isFilterActive = onToggleFilter()
             updateFilterUi(isFilterActive)
+        }
+
+        // Action: Stop Service
+        view.findViewById<View>(R.id.btn_stop_service).setOnClickListener {
+            hideMenu()
+            onStopService()
         }
 
         windowManager.addView(view, menuParams)

@@ -103,10 +103,29 @@ class ScreenCaptureService : Service() {
             onToggleRealTime = { toggleRealTimeMode() },
             onToggleAutoDialogue = { toggleAutoDialogue() },
             onToggleFilter = { toggleFilterMode() },
+            onStopService = { stopServiceCompletely() },
             getRealTimeActive = { isRealTimeActive },
             getAutoDialogueActive = { isAutoDialogueActive }
         )
         bubbleManager.show()
+
+        // Garantizar descarga y verificación del modelo offline en segundo plano
+        serviceScope.launch(Dispatchers.IO) {
+            val config = preferencesManager.loadConfig()
+            val isDownloaded = translatorEngine.isModelDownloaded(config.targetLanguage)
+            if (!isDownloaded) {
+                val ok = translatorEngine.ensureModelDownloaded(
+                    config.sourceLanguage,
+                    config.targetLanguage,
+                    requireWifi = false
+                )
+                if (ok) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@ScreenCaptureService, "✅ Paquete offline listo: traducción ultrarrápida activa", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -227,6 +246,20 @@ class ScreenCaptureService : Service() {
         return newState
     }
 
+    private fun stopServiceCompletely() {
+        Toast.makeText(this, "🛑 Servicio detenido", Toast.LENGTH_SHORT).show()
+        isAutoDialogueActive = false
+        autoDialogueJob?.cancel()
+        autoDialogueJob = null
+        isRealTimeActive = false
+        realTimeJob?.cancel()
+        realTimeJob = null
+        bubbleManager.hide()
+        currentInPlaceOverlay?.detach()
+        currentInPlaceOverlay = null
+        stopSelf()
+    }
+
     private fun startRealTimeAutoScan() {
         realTimeJob?.cancel()
         realTimeJob = serviceScope.launch(Dispatchers.Default) {
@@ -244,7 +277,7 @@ class ScreenCaptureService : Service() {
                         bitmap.recycle()
                     }
                 }
-                delay(1500)
+                delay(650)
             }
         }
     }
@@ -450,7 +483,7 @@ class ScreenCaptureService : Service() {
             val dialogueRect = TranslationMode.LIFEAFTER_CHAT.getBoundingRect(screenWidth, screenHeight)
 
             while (isActive && isAutoDialogueActive) {
-                delay(850)
+                delay(450)
                 // Solo vigilar si el usuario no está en modo recorte manual, no hay diálogo manual activo y el modo automático sigue activo
                 if (currentMode != TranslationMode.PARTIAL_CROP && !isDialogueActive && !isRealTimeActive && isAutoDialogueActive) {
                     val frame = captureBitmapRegion(dialogueRect) ?: continue

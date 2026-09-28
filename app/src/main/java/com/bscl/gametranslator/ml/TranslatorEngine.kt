@@ -14,12 +14,16 @@ import kotlin.coroutines.resumeWithException
 
 class TranslatorEngine {
 
-    private val translationCache = LruCache<String, String>(300)
+    private val translationCache = LruCache<String, String>(500)
     private var activeTranslator: Translator? = null
     private var currentSource: SupportedLanguage? = null
     private var currentTarget: SupportedLanguage? = null
     private val languageIdentifier = LanguageIdentifierEngine()
     private val onlineTranslator = OnlineTranslatorEngine()
+
+    @Volatile
+    var isOfflineReady: Boolean = false
+        private set
 
     private fun getOrCreateTranslator(
         source: SupportedLanguage,
@@ -45,6 +49,7 @@ class TranslatorEngine {
 
     suspend fun isModelDownloaded(language: SupportedLanguage): Boolean = suspendCancellableCoroutine { continuation ->
         if (language == SupportedLanguage.AUTO) {
+            isOfflineReady = true
             continuation.resume(true)
             return@suspendCancellableCoroutine
         }
@@ -52,6 +57,9 @@ class TranslatorEngine {
         val model = TranslateRemoteModel.Builder(language.mlKitCode).build()
         modelManager.isModelDownloaded(model)
             .addOnSuccessListener { isDownloaded ->
+                if (language == currentTarget || language == SupportedLanguage.SPANISH) {
+                    isOfflineReady = isDownloaded
+                }
                 continuation.resume(isDownloaded)
             }
             .addOnFailureListener {
@@ -73,6 +81,7 @@ class TranslatorEngine {
 
         translator.downloadModelIfNeeded(conditionsBuilder.build())
             .addOnSuccessListener {
+                isOfflineReady = true
                 continuation.resume(true)
             }
             .addOnFailureListener {
@@ -104,11 +113,8 @@ class TranslatorEngine {
             return cached
         }
 
-        // Si el modelo offline está instalado, usarlo preferentemente
-        val isTargetOffline = isModelDownloaded(target)
-        val isSourceOffline = if (effectiveSource == SupportedLanguage.ENGLISH) true else isModelDownloaded(effectiveSource)
-
-        if (isTargetOffline && isSourceOffline) {
+        // Si el modelo offline está listo en memoria, usar ML Kit on-device (15-30ms)
+        if (isOfflineReady) {
             try {
                 return suspendCancellableCoroutine { continuation ->
                     val translator = getOrCreateTranslator(effectiveSource, target)
@@ -122,11 +128,32 @@ class TranslatorEngine {
                         }
                 }
             } catch (_: Exception) {
-                // Fallback automático al traductor online
+                // Fallback automático al traductor online si falla
             }
         }
 
-        // Si no está descargado el offline, traducir inmediatamente Online
+        // Si aún no está listo el offline, verificar si ya se descargó previamente
+        try {
+            val downloaded = isModelDownloaded(target)
+            if (downloaded) {
+                isOfflineReady = true
+                return suspendCancellableCoroutine { continuation ->
+                    val translator = getOrCreateTranslator(effectiveSource, target)
+                    translator.translate(trimmed)
+                        .addOnSuccessListener { translated ->
+                            translationCache.put(cacheKey, translated)
+                            continuation.resume(translated)
+                        }
+                        .addOnFailureListener { ex ->
+                            continuation.resumeWithException(ex)
+                        }
+                }
+            }
+        } catch (_: Exception) {
+            // Continuar al fallback online
+        }
+
+        // Fallback rápido Online
         return try {
             val onlineResult = onlineTranslator.translateOnline(trimmed, effectiveSource, target)
             translationCache.put(cacheKey, onlineResult)
