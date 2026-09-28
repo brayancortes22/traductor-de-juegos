@@ -39,7 +39,6 @@ import com.bscl.gametranslator.model.TranslationResult
 import com.bscl.gametranslator.ui.MainActivity
 import com.bscl.gametranslator.util.CrashLogger
 import com.bscl.gametranslator.util.ImageHashUtil
-import com.bscl.gametranslator.voice.VoiceNarratorEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -58,11 +57,8 @@ class ScreenCaptureService : Service() {
     private lateinit var translatorEngine: TranslatorEngine
     private lateinit var bubbleManager: FloatingBubbleManager
     private lateinit var resultDialogManager: ResultDialogManager
-    private lateinit var assistantDialogManager: AssistantDialogManager
-    private lateinit var voiceNarrator: VoiceNarratorEngine
     private lateinit var textFilter: TextFilterEngine
     private lateinit var gameGlossary: GameGlossary
-    private lateinit var assistantEngine: AiGameAssistantEngine
 
     private var currentInPlaceOverlay: InPlaceTranslationOverlayView? = null
     private var mediaProjection: MediaProjection? = null
@@ -94,14 +90,8 @@ class ScreenCaptureService : Service() {
         ocrEngine = OcrEngine()
         translatorEngine = TranslatorEngine()
         resultDialogManager = ResultDialogManager(this)
-        voiceNarrator = VoiceNarratorEngine(this)
         textFilter = TextFilterEngine()
         gameGlossary = GameGlossary()
-        assistantEngine = AiGameAssistantEngine()
-
-        assistantDialogManager = AssistantDialogManager(this) { spokenSummary ->
-            voiceNarrator.speak(spokenSummary, isPriority = true)
-        }
 
         initDisplayMetrics()
         setupNotificationChannel()
@@ -112,9 +102,6 @@ class ScreenCaptureService : Service() {
             onSelectMode = { mode -> executeMode(mode) },
             onToggleRealTime = { toggleRealTimeMode() },
             onToggleAutoDialogue = { toggleAutoDialogue() },
-            onAskAssistant = { triggerAssistantAnalysis() },
-            onExplainScreen = { triggerScreenExplanation() },
-            onToggleVoice = { toggleVoiceMode() },
             onToggleFilter = { toggleFilterMode() },
             getRealTimeActive = { isRealTimeActive },
             getAutoDialogueActive = { isAutoDialogueActive }
@@ -195,14 +182,8 @@ class ScreenCaptureService : Service() {
         when (mode) {
             TranslationMode.FULL_SCREEN -> captureAndTranslate(null)
             TranslationMode.PARTIAL_CROP -> startSnippingMode()
-            TranslationMode.LIFEAFTER_QUESTS,
-            TranslationMode.LIFEAFTER_SHOP -> {
-                val rect = mode.getBoundingRect(screenWidth, screenHeight)
-                captureAndTranslate(rect)
-            }
-            TranslationMode.LIFEAFTER_CHAT -> {
-                toggleAutoDialogue()
-            }
+            TranslationMode.LIFEAFTER_CHAT -> toggleAutoDialogue()
+            else -> captureAndTranslate(null)
         }
     }
 
@@ -237,20 +218,6 @@ class ScreenCaptureService : Service() {
         return isAutoDialogueActive
     }
 
-    private fun toggleVoiceMode(): Boolean {
-        val config = preferencesManager.loadConfig()
-        val newState = !config.enableVoiceAssistant
-        preferencesManager.saveConfig(config.copy(enableVoiceAssistant = newState))
-        if (newState) {
-            Toast.makeText(this, R.string.voice_enabled_toast, Toast.LENGTH_SHORT).show()
-            voiceNarrator.speak("Copiloto de voz activado. Te asistiré durante la partida.", isPriority = true)
-        } else {
-            Toast.makeText(this, R.string.voice_disabled_toast, Toast.LENGTH_SHORT).show()
-            voiceNarrator.stop()
-        }
-        return newState
-    }
-
     private fun toggleFilterMode(): Boolean {
         val config = preferencesManager.loadConfig()
         val newState = !config.filterIrrelevantElements
@@ -258,75 +225,6 @@ class ScreenCaptureService : Service() {
         val msg = if (newState) R.string.filter_enabled_toast else R.string.filter_disabled_toast
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         return newState
-    }
-
-    private fun triggerAssistantAnalysis() {
-        serviceScope.launch(Dispatchers.Default) {
-            // Captura pantalla completa con reintentos para no perder fotogramas
-            val bitmap = captureBitmapRegion(null) ?: return@launch
-            val rawBlocks = ocrEngine.recognizeText(bitmap)
-            bitmap.recycle()
-
-            val cleanText = textFilter.extractCleanFullText(rawBlocks)
-            if (cleanText.isBlank() && rawBlocks.isEmpty()) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ScreenCaptureService, "No se detectó texto o misiones en pantalla", Toast.LENGTH_SHORT).show()
-                }
-                return@launch
-            }
-
-            val config = preferencesManager.loadConfig()
-            val advice = assistantEngine.analyzeGameContext(
-                ocrText = cleanText,
-                apiKey = config.geminiApiKey,
-                blocks = rawBlocks,
-                screenWidth = screenWidth,
-                screenHeight = screenHeight,
-                translatorEngine = translatorEngine
-            )
-
-            withContext(Dispatchers.Main) {
-                assistantDialogManager.showAdvice(advice)
-                if (config.enableVoiceAssistant) {
-                    voiceNarrator.speak(advice.spokenSummary, isPriority = true)
-                }
-            }
-        }
-    }
-
-    private fun triggerScreenExplanation() {
-        serviceScope.launch(Dispatchers.Default) {
-            val bitmap = captureBitmapRegion(null) ?: return@launch
-            val rawBlocks = ocrEngine.recognizeText(bitmap)
-            bitmap.recycle()
-
-            val cleanBlocks = textFilter.filterBlocks(rawBlocks, screenWidth, screenHeight, suppressBottomChat = true)
-            val cleanText = textFilter.extractCleanFullText(cleanBlocks, screenWidth, screenHeight)
-
-            if (cleanText.isBlank() && cleanBlocks.isEmpty()) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ScreenCaptureService, "No se detectaron elementos para explicar en pantalla", Toast.LENGTH_SHORT).show()
-                }
-                return@launch
-            }
-
-            val config = preferencesManager.loadConfig()
-            val advice = assistantEngine.explainScreenElements(
-                ocrText = cleanText,
-                apiKey = config.geminiApiKey,
-                blocks = cleanBlocks,
-                screenWidth = screenWidth,
-                screenHeight = screenHeight,
-                translatorEngine = translatorEngine
-            )
-
-            withContext(Dispatchers.Main) {
-                assistantDialogManager.showAdvice(advice)
-                if (config.enableVoiceAssistant) {
-                    voiceNarrator.speak(advice.spokenSummary, isPriority = true)
-                }
-            }
-        }
     }
 
     private fun startRealTimeAutoScan() {
@@ -476,13 +374,6 @@ class ScreenCaptureService : Service() {
                 if (config.autoCopyToClipboard && fullTranslated.isNotBlank()) {
                     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("Traducción", fullTranslated))
-                }
-
-                if (config.enableVoiceAssistant && (currentMode == TranslationMode.LIFEAFTER_QUESTS || isAuto)) {
-                    val firstSentence = fullTranslated.lines().firstOrNull { it.isNotBlank() } ?: ""
-                    if (firstSentence.length in 5..120) {
-                        voiceNarrator.speak(firstSentence)
-                    }
                 }
             }
         } catch (e: Exception) {
@@ -652,12 +543,10 @@ class ScreenCaptureService : Service() {
         isRealTimeActive = false
         realTimeJob?.cancel()
         realTimeJob = null
-        voiceNarrator.shutdown()
         bubbleManager.hide()
         currentInPlaceOverlay?.detach()
         currentInPlaceOverlay = null
         resultDialogManager.dismiss()
-        assistantDialogManager.dismiss()
         virtualDisplay?.release()
         imageReader?.close()
         mediaProjection?.stop()

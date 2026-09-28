@@ -2,11 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/menu_root"
-    android:layout_width="wrap_content"
+    android:layout_width="220dp"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_floating_menu"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
     android:padding="8dp"
     android:elevation="14dp">
 
@@ -85,59 +84,17 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Option 3: Quests -->
-    <LinearLayout
-        android:id="@+id/btn_mode_quests"
+    <View
         android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:background="@drawable/bg_menu_item">
+        android:layout_height="1dp"
+        android:background="@color/border_cyan"
+        android:layout_marginVertical="4dp" />
 
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_quests" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/mode_quests"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Option 4: Shop / Crafting -->
-    <LinearLayout
-        android:id="@+id/btn_mode_shop"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:background="@drawable/bg_menu_item">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_shop" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/mode_shop"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Option 5: Auto-Dialogue Toggle -->
+    <!-- Toggle 1: Auto-Dialogue (NPCs) -->
     <LinearLayout
         android:id="@+id/btn_mode_chat"
         android:layout_width="match_parent"
-        android:layout_height="38dp"
+        android:layout_height="36dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="6dp"
@@ -145,8 +102,8 @@
 
         <ImageView
             android:id="@+id/iv_chat_indicator"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:src="@drawable/ic_chat" />
 
         <TextView
@@ -154,70 +111,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="💬 Auto-Diálogo Inteligente"
+            android:text="💬 Auto-Diálogo"
             android:textColor="@color/text_primary"
-            android:textSize="13sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Option 6: AI Game Copilot / Assistant -->
-    <LinearLayout
-        android:id="@+id/btn_mode_copilot"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:background="@drawable/bg_menu_item">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_translate"
-            app:tint="#00E5FF" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/menu_copilot"
-            android:textColor="#00E5FF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Option 7: Explain Screen / Items / Abilities -->
-    <LinearLayout
-        android:id="@+id/btn_explain_screen"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:background="@drawable/bg_menu_item">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_shop"
-            app:tint="#F59E0B" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="💡 ¿Qué es y para qué sirve?"
-            android:textColor="#F59E0B"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/border_cyan"
-        android:layout_marginVertical="4dp" />
-
-    <!-- Option 7: Real-time Auto-Scan Toggle -->
+    <!-- Toggle 2: Real-time Auto-Scan -->
     <LinearLayout
         android:id="@+id/btn_mode_realtime"
         android:layout_width="match_parent"
@@ -239,39 +138,11 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="@string/mode_realtime_toggle"
-            android:textColor="@color/accent_green"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Option 8: Voice Narrator Toggle -->
-    <LinearLayout
-        android:id="@+id/btn_toggle_voice"
-        android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:background="@drawable/bg_menu_item">
-
-        <ImageView
-            android:id="@+id/iv_voice_indicator"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@drawable/ic_chat"
-            app:tint="#4ADE80" />
-
-        <TextView
-            android:id="@+id/tv_voice_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/menu_voice_toggle"
-            android:textColor="#4ADE80"
+            android:textColor="@color/text_secondary"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Option 9: HUD Filter Toggle -->
+    <!-- Toggle 3: HUD Filter -->
     <LinearLayout
         android:id="@+id/btn_toggle_filter"
         android:layout_width="match_parent"

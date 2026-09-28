@@ -23,9 +23,6 @@ class FloatingBubbleManager(
     private val onSelectMode: (TranslationMode) -> Unit,
     private val onToggleRealTime: () -> Boolean,
     private val onToggleAutoDialogue: () -> Boolean,
-    private val onAskAssistant: () -> Unit,
-    private val onExplainScreen: () -> Unit,
-    private val onToggleVoice: () -> Boolean,
     private val onToggleFilter: () -> Boolean,
     private val getRealTimeActive: () -> Boolean,
     private val getAutoDialogueActive: () -> Boolean
@@ -148,23 +145,20 @@ class FloatingBubbleManager(
         }
 
         view.findViewById<View>(R.id.btn_menu_close).setOnClickListener { hideMenu() }
+
+        // Mode 1: Full Screen
         view.findViewById<View>(R.id.btn_mode_full).setOnClickListener {
             hideMenu()
             onSelectMode(TranslationMode.FULL_SCREEN)
         }
+
+        // Mode 2: Partial Crop
         view.findViewById<View>(R.id.btn_mode_crop).setOnClickListener {
             hideMenu()
             onSelectMode(TranslationMode.PARTIAL_CROP)
         }
-        view.findViewById<View>(R.id.btn_mode_quests).setOnClickListener {
-            hideMenu()
-            onSelectMode(TranslationMode.LIFEAFTER_QUESTS)
-        }
-        view.findViewById<View>(R.id.btn_mode_shop).setOnClickListener {
-            hideMenu()
-            onSelectMode(TranslationMode.LIFEAFTER_SHOP)
-        }
-        // Auto-Diálogo Toggle
+
+        // Toggle 1: Auto-Diálogo
         val updateDialogueUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_chat_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_chat_indicator)
@@ -175,7 +169,7 @@ class FloatingBubbleManager(
             } else {
                 tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
                 ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_primary))
-                tvLabel.text = "💬 Auto-Diálogo Inteligente"
+                tvLabel.text = "💬 Auto-Diálogo"
             }
         }
         updateDialogueUi(getAutoDialogueActive())
@@ -185,16 +179,7 @@ class FloatingBubbleManager(
             updateDialogueUi(isActive)
         }
 
-        view.findViewById<View>(R.id.btn_mode_copilot).setOnClickListener {
-            hideMenu()
-            onAskAssistant()
-        }
-        view.findViewById<View>(R.id.btn_explain_screen).setOnClickListener {
-            hideMenu()
-            onExplainScreen()
-        }
-
-        // Real-Time Toggle
+        // Toggle 2: Real-Time Auto-Scan
         val updateRealTimeUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_realtime_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_realtime_indicator)
@@ -215,27 +200,8 @@ class FloatingBubbleManager(
             updateRealTimeUi(isActive)
         }
 
-        // Voice Toggle
+        // Toggle 3: Filter HUD / Bullets
         val config = preferencesManager.loadConfig()
-        val updateVoiceUi = { active: Boolean ->
-            val tvLabel = view.findViewById<TextView>(R.id.tv_voice_label)
-            val ivIcon = view.findViewById<ImageView>(R.id.iv_voice_indicator)
-            if (active) {
-                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.accent_green))
-                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.accent_green))
-            } else {
-                tvLabel.setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
-                ivIcon.setColorFilter(ContextCompat.getColor(context, R.color.text_secondary))
-            }
-        }
-        updateVoiceUi(config.enableVoiceAssistant)
-
-        view.findViewById<View>(R.id.btn_toggle_voice).setOnClickListener {
-            val isVoiceActive = onToggleVoice()
-            updateVoiceUi(isVoiceActive)
-        }
-
-        // Filter Toggle
         val updateFilterUi = { active: Boolean ->
             val tvLabel = view.findViewById<TextView>(R.id.tv_filter_label)
             val ivIcon = view.findViewById<ImageView>(R.id.iv_filter_indicator)
